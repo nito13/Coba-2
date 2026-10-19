@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIANSAR KP — Analisis Sarana Prasarana Satuan Pendidikan KKP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="icon" type="image/png" href="assets/logo-kkp.png">
+  <link rel="stylesheet" href="assets/css/style.css?v=3">
+</head>
+<body>
+  <!-- ========== SCREEN LOGIN (OTENTIKASI - DINONAKTIFKAN SEMENTARA) ========== -->
+  <div class="auth-screen" id="authScreen" style="display: none !important;">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-logo-badge">
+            <img src="assets/logo-kkp.png" alt="Logo Kementerian Kelautan dan Perikanan">
+          </div>
+          <div class="auth-instansi">KEMENTERIAN KELAUTAN DAN PERIKANAN</div>
+          <div class="auth-subinstansi">BPPSDM KP · Pusat Pendidikan Kelautan dan Perikanan</div>
+          <h1 class="auth-title">SIANSAR KP</h1>
+          <p class="auth-desc">Sistem Informasi Analisis Sarana Prasarana Satuan Pendidikan KKP</p>
+        </div>
+
+        <div id="loginAlert" class="auth-alert" style="display:none;"></div>
+
+        <form id="loginForm" class="auth-form" autocomplete="on">
+          <div class="form-group">
+            <label for="loginUser">Email / NIP / Akun Dinas</label>
+            <div class="input-icon-wrap">
+              <span class="input-ico">👤</span>
+              <input type="text" id="loginUser" placeholder="admin.pusdik@kkp.go.id" required autocomplete="username">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="label-row">
+              <label for="loginPass">Kata Sandi</label>
+              <a href="#" id="btnForgotPass" class="link-muted">Lupa sandi?</a>
+            </div>
+            <div class="input-icon-wrap">
+              <span class="input-ico">🔒</span>
+              <input type="password" id="loginPass" placeholder="Masukkan kata sandi" required autocomplete="current-password">
+              <button type="button" class="btn-toggle-pass" id="btnTogglePass" title="Tampilkan sandi">👁️</button>
+            </div>
+          </div>
+
+          <div class="remember-row">
+            <label class="remember-label">
+              <input type="checkbox" id="loginRemember" checked>
+              <span>Ingat saya di perangkat ini</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn-auth-submit" id="btnSubmitLogin">
+            <span class="btn-text">Masuk ke Sistem</span>
+            <span class="btn-spinner" id="loginSpinner" style="display:none;">⏳</span>
+          </button>
+        </form>
+
+        <!-- Quick Demo Accounts -->
+        <div class="auth-demo-section">
+          <div class="demo-divider">
+            <span>PILIH AKUN UJI COBA CEPAT (1-KLIK)</span>
+          </div>
+          <div class="demo-chips">
+            <button type="button" class="demo-chip" data-user="admin.pusdik@kkp.go.id" data-pass="admin" title="Login sebagai Administrator Pusat Pusdik KP">
+              <span class="demo-role-badge badge-admin">Admin Pusat</span>
+              <span class="demo-name">Pusdik KP (Akses Penuh)</span>
+            </button>
+            <button type="button" class="demo-chip" data-user="operator.aup@kkp.go.id" data-pass="operator" title="Login sebagai Operator Poltek AUP Jakarta">
+              <span class="demo-role-badge badge-operator">Operator Satdik</span>
+              <span class="demo-name">Poltek AUP Jakarta</span>
+            </button>
+            <button type="button" class="demo-chip" data-user="operator.sidoarjo@kkp.go.id" data-pass="operator" title="Login sebagai Operator Poltek KP Sidoarjo">
+              <span class="demo-role-badge badge-operator">Operator Satdik</span>
+              <span class="demo-name">Poltek KP Sidoarjo</span>
+            </button>
+            <button type="button" class="demo-chip" data-user="pimpinan@kkp.go.id" data-pass="pimpinan" title="Login sebagai Pimpinan / Eksekutif">
+              <span class="demo-role-badge badge-exec">Pimpinan</span>
+              <span class="demo-name">Kepala Pusat Pendidikan</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-footer">
+          <div class="auth-security-note">
+            <span>🛡️</span> Sistem Terintegrasi &amp; Terproteksi · Akses Terbatas Kedinasan
+          </div>
+          <small>© BPPSDM KP · Kementerian Kelautan dan Perikanan</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== APLIKASI UTAMA (DASHBOARD) ========== -->
+  <div class="app-layout" id="appLayout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <img src="assets/logo-kkp.png" alt="Logo KKP">
+        </div>
+        <div>
+          <div class="brand-title">SIANSAR KP</div>
+          <div class="brand-sub">Analisis Sarpras Satdik KKP</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#ringkasan" class="nav-link active" data-page="ringkasan"><span class="ico">◧</span>Ringkasan</a>
+        <a href="#kondisi" class="nav-link" data-page="kondisi"><span class="ico">◔</span>Analisis Kondisi</a>
+        <a href="#satdik" class="nav-link" data-page="satdik"><span class="ico">▤</span>Per Satuan Pendidikan</a>
+        <a href="#kecukupan" class="nav-link" data-page="kecukupan"><span class="ico">⚖</span>Rasio & Kecukupan</a>
+        <a href="#prioritas" class="nav-link" data-page="prioritas"><span class="ico">⚑</span>Prioritas & Rekomendasi</a>
+        <a href="#peta" class="nav-link" data-page="peta"><span class="ico">⌖</span>Peta Sebaran</a>
+        <a href="#data" class="nav-link" data-page="data"><span class="ico">⇅</span>Data & Impor</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="src-badge" id="srcBadge">Data: Data Contoh.xlsx</div>
+        <div class="sidebar-user" id="sidebarUser">
+          <div class="sidebar-user-avatar" id="sidebarAvatar">A</div>
+          <div class="sidebar-user-info">
+            <strong id="sidebarUserName">Pusdik KP</strong>
+            <span id="sidebarUserRole">Administrator Pusat</span>
+          </div>
+          <button type="button" class="btn-sidebar-logout" id="sidebarLogout" title="Keluar dari sistem" style="display: none;">⏻</button>
+        </div>
+        <small>BPPSDM KP · Pusat Pendidikan KP</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="btn-icon menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+        <div>
+          <h1 id="pageTitle">Ringkasan Eksekutif</h1>
+          <p class="muted" id="pageSub">Gambaran umum kondisi sarana prasarana satuan pendidikan lingkup KKP</p>
+        </div>
+        <div class="topbar-right">
+          <span class="muted small" id="lastUpdate"></span>
+          <button class="btn btn-ghost" onclick="window.print()">⎙ Cetak</button>
+          <div class="user-profile-menu" id="userProfileMenu">
+            <button class="user-badge-btn" id="userMenuToggle" aria-expanded="false" title="Menu Pengguna">
+              <div class="user-avatar" id="userAvatar">PK</div>
+              <div class="user-info-text">
+                <span class="user-name" id="topUserName">Pusdik KP</span>
+                <span class="user-role-tag" id="topUserRole">Admin Pusat</span>
+              </div>
+              <span class="chevron">▾</span>
+            </button>
+            <div class="user-dropdown-menu" id="userDropdown">
+              <div class="user-dropdown-header">
+                <strong id="dropUserFullName">Pusat Pendidikan KP</strong>
+                <span class="muted small" id="dropUserNip">Akses Langsung (Tanpa Login)</span>
+                <span class="user-dept" id="dropUserDept">BPPSDM Kelautan dan Perikanan</span>
+              </div>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item" id="btnOpenAccountModal">
+                <span>👤</span> Profil &amp; Hak Akses
+              </button>
+              <button type="button" class="dropdown-item" id="btnOpenChangePassModal" style="display: none;">
+                <span>🔑</span> Ganti Kata Sandi
+              </button>
+              <button type="button" class="dropdown-item logout" id="btnLogout" style="display: none;">
+                <span>🚪</span> Keluar (Logout)
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- ROLE / OPERATOR NOTICE BANNER -->
+      <div id="roleBanner" class="role-banner" style="display:none;">
+        <div class="role-banner-icon" id="roleBannerIcon">📍</div>
+        <div class="role-banner-content" id="roleBannerText"></div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <section class="filters card">
+        <div class="f-item"><label>Jenis Satdik</label><select id="fJenis"></select></div>
+        <div class="f-item"><label>Provinsi</label><select id="fProv"></select></div>
+        <div class="f-item"><label>Satuan Pendidikan</label><select id="fSatdik"></select></div>
+        <div class="f-item"><label>Program Studi</label><select id="fKat"></select></div>
+        <button class="btn btn-ghost" id="btnReset">↺ Reset</button>
+      </section>
+
+    <!-- ========== RINGKASAN ========== -->
+    <section class="page active" id="page-ringkasan">
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Satuan Pendidikan</div><div class="kpi-val" id="kSatdik">-</div><div class="kpi-foot" id="kSatdikF"></div></div>
+        <div class="kpi"><div class="kpi-label">Total Unit Sarpras</div><div class="kpi-val" id="kUnit">-</div><div class="kpi-foot" id="kUnitF"></div></div>
+        <div class="kpi"><div class="kpi-label">Kondisi Baik</div><div class="kpi-val" id="kBaik">-</div><div class="kpi-foot" id="kBaikF"></div></div>
+        <div class="kpi accent"><div class="kpi-label">Indeks Kondisi Sarpras (IKS) <span class="tip" title="IKS = rata-rata tertimbang kondisi: Baik=100, Rusak Ringan=70, Rusak Berat=0">ⓘ</span></div><div class="kpi-val" id="kIks">-</div><div class="kpi-foot" id="kIksF"></div></div>
+      </div>
+
+      <div class="grid g-3-2">
+        <div class="card">
+          <div class="card-h"><h3>Insight Otomatis</h3><span class="chip">AI-rule based</span></div>
+          <ul class="insights" id="insights"></ul>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>Komposisi Kondisi</h3></div>
+          <div class="chart-box sm"><canvas id="cKondisi"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>IKS per Satuan Pendidikan</h3><span class="muted small">diurutkan terendah → tertinggi</span></div>
+        <div class="chart-box tall"><canvas id="cIksSatdik"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ========== KONDISI ========== -->
+    <section class="page" id="page-kondisi">
+      <div class="grid g-2">
+        <div class="card">
+          <div class="card-h"><h3>Kondisi per Program Studi</h3><span class="muted small">% unit</span></div>
+          <div class="chart-box"><canvas id="cKatKondisi"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>Usia Aset vs Umur Ekonomis</h3><span class="muted small">rata-rata tertimbang (tahun)</span></div>
+          <div class="chart-box"><canvas id="cUsia"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Tren Perolehan Aset per Periode</h3><span class="muted small">jumlah unit & % rusak berat saat ini</span></div>
+        <div class="chart-box"><canvas id="cTren"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Item Sarpras dengan Rusak Berat Terbanyak</h3><span class="muted small">Top 15 (agregat semua satdik terfilter)</span></div>
+        <div class="table-wrap"><table class="tbl" id="tTopRusak"></table></div>
+      </div>
+    </section>
+
+    <!-- ========== PER SATDIK ========== -->
+    <section class="page" id="page-satdik">
+      <div class="card">
+        <div class="card-h"><h3>Heatmap IKS: Satuan Pendidikan × Program Studi</h3>
+          <div class="legend-scale"><span>0</span><i></i><span>100</span></div>
+        </div>
+        <div class="table-wrap"><table class="tbl heat" id="tHeat"></table></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Profil Satuan Pendidikan</h3><span class="muted small">klik header untuk mengurutkan</span></div>
+        <div class="table-wrap"><table class="tbl sortable" id="tProfil"></table></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Perbandingan Komposisi Kondisi</h3><span class="muted small">% unit per satdik</span></div>
+        <div class="chart-box tall"><canvas id="cSatdikStack"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ========== KECUKUPAN ========== -->
+    <section class="page" id="page-kecukupan">
+      <div class="card">
+        <div class="card-h"><h3>Rasio Ketersediaan Sarpras Layak terhadap Peserta Didik</h3><span class="muted small">hanya unit kondisi Baik & Rusak Ringan (layak pakai)</span></div>
+        <p class="muted small" id="stdNote"></p>
+        <div class="table-wrap"><table class="tbl" id="tRasio"></table></div>
+      </div>
+      <div class="grid g-2">
+        <div class="card">
+          <div class="card-h"><h3>Taruna per Komputer Layak</h3><span class="muted small">garis = batas standar</span></div>
+          <div class="chart-box tall"><canvas id="cRasioPC"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>Taruna per Ruang Kelas Layak</h3><span class="muted small">garis = batas standar</span></div>
+          <div class="chart-box tall"><canvas id="cRasioKelas"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PRIORITAS ========== -->
+    <section class="page" id="page-prioritas">
+      <div class="card">
+        <div class="card-h"><h3>Skor Prioritas Intervensi</h3><span class="tip" title="Skor = 45% (100−IKS) + 35% defisit sarpras kritis (Gedung, Kapal Latih, Simulator, Fasilitas Praktik) + 20% kesenjangan rasio terhadap standar">ⓘ metode</span></div>
+        <div class="table-wrap"><table class="tbl" id="tPrioritas"></table></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Rekomendasi Kebijakan per Satuan Pendidikan</h3></div>
+        <div class="reco-grid" id="recoGrid"></div>
+      </div>
+    </section>
+
+    <!-- ========== PETA ========== -->
+    <section class="page" id="page-peta">
+      <div class="card">
+        <div class="card-h"><h3>Peta Sebaran Satuan Pendidikan & IKS</h3>
+          <div class="map-legend">
+            <span><i style="background:#16a34a"></i>≥ 80</span>
+            <span><i style="background:#eab308"></i>65–79</span>
+            <span><i style="background:#f97316"></i>50–64</span>
+            <span><i style="background:#dc2626"></i>&lt; 50</span>
+          </div>
+        </div>
+        <div id="map"></div>
+        <p class="muted small">Ukuran lingkaran sebanding dengan jumlah unit sarpras. Koordinat bersifat perkiraan.</p>
+      </div>
+    </section>
+
+    <!-- ========== DATA ========== -->
+    <section class="page" id="page-data">
+      <div class="grid g-2">
+        <div class="card">
+          <div class="card-h"><h3>Impor Data Riil</h3></div>
+          <p class="small">Unggah file <b>.xlsx / .xls / .csv</b> dengan kolom:</p>
+          <code class="cols">kode, satdik, jenis, provinsi, kategori, nama, satuan, jumlah, kondisi, tahun</code>
+          <p class="muted small">Kondisi: <i>Baik</i>, <i>Rusak Ringan</i>, <i>Rusak Berat</i>. Satu baris = sekelompok unit dengan kondisi & tahun perolehan yang sama.</p>
+          <label class="drop" id="drop">
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+            <span>⇪ Klik atau seret file ke sini</span>
+          </label>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="btnTemplate">⤓ Unduh Template</button>
+            <button class="btn btn-ghost" id="btnSample">↺ Reset ke Data Contoh.xlsx</button>
+          </div>
+          <div id="importMsg" class="small"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>Data Peserta Didik (untuk Analisis Rasio)</h3></div>
+          <p class="muted small">Ubah jumlah taruna/siswa aktif per satdik. Perubahan tersimpan di browser.</p>
+          <div class="table-wrap short"><table class="tbl" id="tTaruna"></table></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h">
+          <h3>Tabel Data Sarpras <span class="muted small" id="rowCount"></span></h3>
+          <div class="btn-row">
+            <input type="search" id="search" placeholder="Cari nama, satdik, kategori…">
+            <button class="btn" id="btnExportXlsx">⤓ Excel</button>
+            <button class="btn btn-ghost" id="btnExportCsv">⤓ CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="tbl sortable" id="tData"></table></div>
+        <div class="pager" id="pager"></div>
+      </div>
+    </section>
+
+    <footer class="foot muted small">
+      SIANSAR KP · Sistem Informasi Analisis Sarana Prasarana Satuan Pendidikan Kementerian Kelautan dan Perikanan.
+      <b>Data bersumber dari file resmi Data Contoh.xlsx</b> · BPPSDM KP.
+    </footer>
+  </main>
+</div><!-- /appLayout -->
+
+  <!-- MODAL: Profil Pengguna & Hak Akses -->
+  <div class="modal-backdrop" id="modalProfile">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Profil Pengguna &amp; Hak Akses</h3>
+        <button type="button" class="modal-close" data-close="modalProfile">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-list">
+          <div class="info-row">
+            <span class="info-label">Nama Lengkap</span>
+            <span class="info-val" id="profName">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">NIP</span>
+            <span class="info-val" id="profNip">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email Kedinasan</span>
+            <span class="info-val" id="profEmail">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Peran (Role)</span>
+            <span class="info-val" id="profRole">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Jabatan &amp; Unit Kerja</span>
+            <span class="info-val" id="profDept">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Cakupan Wilayah / Satdik</span>
+            <span class="info-val" id="profSatdik">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Hak Akses Sistem (Permissions)</span>
+            <div id="profPerms" style="margin-top:6px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close="modalProfile">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Ganti Kata Sandi -->
+  <div class="modal-backdrop" id="modalChangePass">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Ganti Kata Sandi</h3>
+        <button type="button" class="modal-close" data-close="modalChangePass">&times;</button>
+      </div>
+      <form id="formChangePass">
+        <div class="modal-body">
+          <div id="changePassAlert" class="auth-alert" style="display:none;"></div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="form-group">
+              <label for="oldPass">Kata Sandi Saat Ini</label>
+              <input type="password" id="oldPass" required style="width:100%; box-sizing:border-box;">
+            </div>
+            <div class="form-group">
+              <label for="newPass">Kata Sandi Baru (Min. 4 karakter)</label>
+              <input type="password" id="newPass" required style="width:100%; box-sizing:border-box;">
+            </div>
+            <div class="form-group">
+              <label for="confirmPass">Konfirmasi Kata Sandi Baru</label>
+              <input type="password" id="confirmPass" required style="width:100%; box-sizing:border-box;">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close="modalChangePass">Batal</button>
+          <button type="submit" class="btn" id="btnSubmitChangePass">Simpan Sandi Baru</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Bantuan Lupa Sandi -->
+  <div class="modal-backdrop" id="modalForgotPass">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Bantuan Lupa Kata Sandi</h3>
+        <button type="button" class="modal-close" data-close="modalForgotPass">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Demi keamanan data aset kedinasan KKP, pengaturan ulang kata sandi diverifikasi secara terpusat oleh Pengelola Akun Pusdik KP.</p>
+        <div class="info-list" style="margin-top:14px;">
+          <div class="info-row">
+            <span class="info-label">Helpdesk Sarpras</span>
+            <span class="info-val">Pusat Pendidikan KP - BPPSDM KP (Gd. Mina Bahari III Lt. 9)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email Verifikasi</span>
+            <span class="info-val">admin.pusdik@kkp.go.id</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Akun Uji Coba Cepat (Demo)</span>
+            <span class="info-val">Untuk demonstrasi sistem, gunakan tombol 1-klik akun uji coba (Admin: <code>admin</code>, Operator: <code>operator</code>, Pimpinan: <code>pimpinan</code>).</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" data-close="modalForgotPass">Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="assets/js/data-excel.js?v=2"></script>
+  <script src="assets/js/data.js?v=8"></script>
+  <script src="assets/js/auth.js?v=1"></script>
+  <script src="assets/js/app.js?v=9"></script>
+</body>
+</html>
