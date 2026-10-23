@@ -7,9 +7,9 @@
   'use strict';
 
   const STORAGE_KEYS = {
-    SESSION: 'siansar_auth_session',
-    USERS: 'siansar_auth_users',
-    REMEMBER: 'siansar_auth_remember'
+    SESSION: 'siansar_auth_session_v2',
+    USERS: 'siansar_auth_users_v2',
+    REMEMBER: 'siansar_auth_remember_v2'
   };
 
   // Akun bawaan sistem kedinasan SIANSAR KP
@@ -19,15 +19,15 @@
       username: 'admin.pusdik',
       email: 'admin.pusdik@kkp.go.id',
       nip: '19850315 201012 1 002',
-      name: 'Rahmat Hidayat, S.St.Pi., M.Tr.Pi',
+      name: 'Akun Test',
       password: 'admin', // Demo password
       role: 'admin_pusdik',
       roleLabel: 'Administrator Pusat',
-      jabatan: 'Koordinator Kelompok Sarana dan Prasarana Pusdik KP',
-      unitKerja: 'Pusat Pendidikan KP - BPPSDM Kelautan dan Perikanan',
+      jabatan: '-',
+      unitKerja: '-',
       accessibleSatdik: 'ALL',
       satdikName: 'Semua Satuan Pendidikan',
-      avatar: 'RH',
+      avatar: 'AT',
       permissions: ['all', 'manage_sarpras', 'import_data', 'edit_taruna', 'export_reports', 'change_settings']
     },
     {
