@@ -1,0 +1,11 @@
+{
+  "name": "siansar-kp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SIANSAR KP — Sistem Informasi Analisis Sarana Prasarana Satuan Pendidikan KKP",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "start": "node dev-server.js",
+    "build:data": "node build-data.js"
+  }
+}

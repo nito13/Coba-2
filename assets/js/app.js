@@ -8,11 +8,11 @@
 
   // Bobot Indeks Kondisi Sarpras (IKS) — Baik=100, Rusak Ringan=70, Rusak Berat=0
   const W = { 'Baik': 100, 'Rusak Ringan': 70, 'Rusak Berat': 0 };
-  const KCOL = { 'Baik': '#16a34a', 'Rusak Ringan': '#eab308', 'Rusak Berat': '#dc2626' };
+  const KCOL = { 'Baik': '#10b981', 'Rusak Ringan': '#0ea5e9', 'Rusak Berat': '#f43f5e' };
   const KCLS = { 'Baik': 'b-baik', 'Rusak Ringan': 'b-rr', 'Rusak Berat': 'b-rb' };
   const CRITICAL = ['Penangkapan Ikan', 'Permesinan Kapal', 'Budidaya', 'Pengolahan'];
   const KAT_ORDER = Object.keys(UMUR);
-  const PALETTE = ['#0f4c75', '#0ea5a4', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b', '#14b8a6'];
+  const PALETTE = ['#06b6d4', '#10b981', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b', '#14b8a6'];
 
   // Standar rasio (asumsi kerja — sesuaikan dengan regulasi/standar internal yang berlaku)
   const STD = [
@@ -56,14 +56,15 @@
     return m;
   }
   function iksLevel(v) { return v >= 80 ? 'Baik' : v >= 65 ? 'Cukup' : v >= 50 ? 'Kurang' : 'Kritis'; }
-  function iksColor(v) { return v >= 80 ? '#16a34a' : v >= 65 ? '#eab308' : v >= 50 ? '#f97316' : '#dc2626'; }
+  function isDark() { return !document.documentElement.classList.contains('light'); }
+  function iksColor(v) { return v >= 80 ? '#10b981' : v >= 65 ? '#0ea5e9' : v >= 50 ? '#f59e0b' : '#f43f5e'; }
   function iksBadge(v) {
     const c = v >= 80 ? 'b-baik' : v >= 65 ? 'b-rr' : v >= 50 ? 'b-rs' : 'b-rb';
     return `<span class="badge ${c}">${iksLevel(v)}</span>`;
   }
   function heat(v) {
     const h = Math.max(0, Math.min(1, (v - 30) / 65)) * 120;
-    return `background:hsl(${h},75%,86%);color:hsl(${h},70%,22%)`;
+    return isDark() ? `background:hsla(${h},75%,45%,.22);color:hsl(${h},85%,76%)` : `background:hsl(${h},75%,86%);color:hsl(${h},70%,22%)`;
   }
   function bar(v, color) {
     return `<div class="bar"><i style="width:${Math.max(0, Math.min(100, v))}%;background:${color}"></i></div>`;
@@ -138,10 +139,15 @@
   // ---------- Charts ----------
   Chart.defaults.font.family = "'Plus Jakarta Sans', system-ui, sans-serif";
   Chart.defaults.font.size = 11.5;
-  Chart.defaults.color = '#475569';
   Chart.defaults.plugins.legend.labels.usePointStyle = true;
   Chart.defaults.plugins.legend.labels.boxWidth = 8;
   Chart.defaults.maintainAspectRatio = false;
+  function applyChartTheme() {
+    const dk = isDark();
+    Chart.defaults.color = dk ? '#cbd5e1' : '#090d16';
+    Chart.defaults.borderColor = dk ? 'rgba(51, 65, 85, 0.45)' : '#cbd5e1';
+  }
+  applyChartTheme();
   Chart.register({
     id: 'stdLine',
     afterDatasetsDraw(c, _a, o) {
@@ -287,10 +293,39 @@
 
     $('insights').innerHTML = insights(rows).map(([c, i, t]) => `<li class="${c}"><span class="i-ico">${i}</span><span>${t}</span></li>`).join('');
 
+    // Peringatan dini bila ada sarpras rusak berat (mengikuti ExecutiveDashboard.jsx)
+    const alertRB = $('alertRB');
+    if (alertRB) {
+      if (A.k['Rusak Berat'] > 0) {
+        const rbRow = [...rows].filter(r => r.kondisi === 'Rusak Berat').sort((a, b) => b.jumlah - a.jumlah)[0];
+        alertRB.style.display = 'flex';
+        $('alertRBTitle').textContent = `Peringatan Dini: ${fmtNum(A.k['Rusak Berat'])} Unit Sarpras Rusak Berat (${pct(A.k['Rusak Berat'] / A.unit)})!`;
+        $('alertRBText').innerHTML = rbRow ? `Contoh: <b>${esc(rbRow.nama)}</b> (${esc(short(rbRow.satdik))}) — ${fmtNum(rbRow.jumlah)} ${esc(rbRow.satuan)} rusak berat.` : '';
+      } else {
+        alertRB.style.display = 'none';
+      }
+    }
+    const prioBadge = $('tabBadgePrio');
+    if (prioBadge) {
+      const nKrit = [...groupBy(rows, r => r.kode)].filter(([, rs]) => agg(rs).iks < 65).length;
+      prioBadge.style.display = nKrit > 0 ? 'inline-block' : 'none';
+      prioBadge.textContent = nKrit;
+    }
+    if ($('donutTotal')) $('donutTotal').textContent = fmtNum(A.unit) + ' Unit Total';
+    if ($('donutPct')) $('donutPct').textContent = pct(A.k['Baik'] / A.unit);
+    if ($('donutStats')) {
+      $('donutStats').innerHTML = [
+        ['Baik (Layak)', A.k['Baik'], 'var(--emerald-t)'],
+        ['Rusak Ringan', A.k['Rusak Ringan'], 'var(--sky-t)'],
+        ['Rusak Berat', A.k['Rusak Berat'], 'var(--rose-t)']
+      ].map(([l, v, col]) => `<div class="mini-stat"><span>${l}</span><b style="color:${col}">${fmtNum(v)} <small>(${pct(v / A.unit)})</small></b></div>`).join('');
+    }
+    if ($('iksAvgNote')) $('iksAvgNote').textContent = 'Rata-rata IKS: ' + f1(A.iks);
+
     chart('cKondisi', {
       type: 'doughnut',
-      data: { labels: KONDISI, datasets: [{ data: KONDISI.map(k => A.k[k]), backgroundColor: KONDISI.map(k => KCOL[k]), borderWidth: 2, borderColor: '#fff' }] },
-      options: { cutout: '62%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => `${c.label}: ${fmtNum(c.raw)} unit (${pct(c.raw / A.unit)})` } } } }
+      data: { labels: KONDISI, datasets: [{ data: KONDISI.map(k => A.k[k]), backgroundColor: KONDISI.map(k => KCOL[k]), borderWidth: 2, borderColor: isDark() ? '#1e293b' : '#fff', hoverOffset: 6 }] },
+      options: { cutout: '68%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmtNum(c.raw)} unit (${pct(c.raw / A.unit)})` } } } }
     });
 
     const sat = [...groupBy(rows, r => r.kode)].map(([k, rs]) => ({ k, a: agg(rs) })).sort((x, y) => x.a.iks - y.a.iks);
@@ -322,7 +357,7 @@
         labels: kat.map(x => x.k),
         datasets: [
           { label: 'Rata-rata usia aset', data: kat.map(x => +x.a.avgAge.toFixed(1)), backgroundColor: kat.map(x => x.a.avgAge > (UMUR[x.k] || 20) ? '#dc2626' : '#0ea5a4'), borderRadius: 4 },
-          { label: 'Umur ekonomis', data: kat.map(x => UMUR[x.k] || 20), backgroundColor: '#cbd5e1', borderRadius: 4 }
+          { label: 'Umur ekonomis', data: kat.map(x => UMUR[x.k] || 20), backgroundColor: isDark() ? '#475569' : '#cbd5e1', borderRadius: 4 }
         ]
       },
       options: { indexAxis: 'y', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${f1(c.raw)} th` } } }, scales: { y: { grid: { display: false } }, x: { title: { display: true, text: 'tahun' } } } }
@@ -341,8 +376,8 @@
         data: {
           labels: data.map(d => d.label),
           datasets: [
-            { type: 'line', label: '% rusak berat (kondisi kini)', data: data.map(d => +d.rb.toFixed(1)), borderColor: '#dc2626', backgroundColor: '#dc2626', yAxisID: 'y1', tension: .3 },
-            { type: 'bar', label: 'Unit diperoleh', data: data.map(d => d.unit), backgroundColor: '#0f4c75', borderRadius: 4, yAxisID: 'y' }
+            { type: 'line', label: '% rusak berat (kondisi kini)', data: data.map(d => +d.rb.toFixed(1)), borderColor: '#f43f5e', backgroundColor: '#f43f5e', yAxisID: 'y1', tension: .3 },
+            { type: 'bar', label: 'Unit diperoleh', data: data.map(d => d.unit), backgroundColor: '#06b6d4', borderRadius: 4, yAxisID: 'y' }
           ]
         },
         options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { title: { display: true, text: 'unit' } }, y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } } }
@@ -354,7 +389,7 @@
       return { n, kat: rs[0].kategori, sat: rs[0].satuan, unit: a.unit, rb: a.k['Rusak Berat'], rbp: a.k['Rusak Berat'] / a.unit, nSat: new Set(rbRows.map(r => r.kode)).size };
     }).filter(i => i.rb > 0).sort((a, b) => (b.rb - a.rb) || (b.rbp - a.rbp)).slice(0, 15);
     $('tTopRusak').innerHTML = `<thead><tr><th>#</th><th>Item Sarpras</th><th>Program Studi</th><th class="num">Total Unit</th><th class="num">Rusak Berat</th><th>% RB</th><th class="num">Satdik Terdampak</th></tr></thead><tbody>` +
-      (items.map((i, x) => `<tr><td>${x + 1}</td><td><b>${esc(i.n)}</b></td><td>${esc(i.kat)}</td><td class="num">${fmtNum(i.unit)} ${esc(i.sat)}</td><td class="num">${fmtNum(i.rb)}</td><td>${bar(i.rbp * 100, '#dc2626')} <span class="small">${pct(i.rbp)}</span></td><td class="num">${i.nSat}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Tidak ada item rusak berat.</td></tr>') + '</tbody>';
+      (items.map((i, x) => `<tr><td>${x + 1}</td><td><b>${esc(i.n)}</b></td><td>${esc(i.kat)}</td><td class="num">${fmtNum(i.unit)} ${esc(i.sat)}</td><td class="num">${fmtNum(i.rb)}</td><td>${bar(i.rbp * 100, '#f43f5e')} <span class="small">${pct(i.rbp)}</span></td><td class="num">${i.nSat}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Tidak ada item rusak berat.</td></tr>') + '</tbody>';
   };
 
   RENDER.satdik = function () {
@@ -430,7 +465,7 @@
       P.map((p, i) => {
         const [l, t] = prioLevel(p.score);
         return `<tr><td>${i + 1}</td><td><b>${esc(short(nameOf(p.k)))}</b><div class="small muted">${esc(META[p.k].provinsi)}</div></td><td class="num">${f1(p.a.iks)}</td><td class="num">${f1(p.crit)}%</td><td class="num">${f1(p.gap)}%</td>` +
-          `<td><div style="display:flex;gap:8px;align-items:center">${bar(p.score / 60 * 100, ['', '#dc2626', '#f97316', '#eab308', '#16a34a'][l])}<b>${f1(p.score)}</b></div></td><td><span class="lvl lvl-${l}">${t}</span></td></tr>`;
+          `<td><div style="display:flex;gap:8px;align-items:center">${bar(p.score / 60 * 100, ['', '#f43f5e', '#f59e0b', '#0ea5e9', '#10b981'][l])}<b>${f1(p.score)}</b></div></td><td><span class="lvl lvl-${l}">${t}</span></td></tr>`;
       }).join('') + '</tbody>';
 
     $('recoGrid').innerHTML = P.map(p => {
@@ -529,7 +564,7 @@
     document.querySelectorAll('.nav-link').forEach(a => a.classList.toggle('active', a.dataset.page === page));
     $('pageTitle').textContent = PAGES[page][0];
     $('pageSub').textContent = PAGES[page][1];
-    $('sidebar').classList.remove('open');
+    if ($('sidebar')) $('sidebar').classList.remove('open');
   }
   function show(page) {
     if (window.SARPRAS_AUTH && !window.SARPRAS_AUTH.isAuthenticated()) {
@@ -995,11 +1030,23 @@
       fillFilters();
       refresh();
     };
-    $('menuToggle').onclick = () => $('sidebar').classList.toggle('open');
+    if ($('menuToggle') && $('sidebar')) $('menuToggle').onclick = () => $('sidebar').classList.toggle('open');
     window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 
     $('search').addEventListener('input', e => { tableState.data.q = e.target.value; tableState.data.page = 1; RENDER.data(); });
     $('btnExportXlsx').onclick = () => exportData('xlsx');
+    if ($('btnTopExport')) $('btnTopExport').onclick = () => exportData('xlsx');
+    if ($('themeToggle')) {
+      $('themeToggle').onclick = () => {
+        const root = document.documentElement;
+        const nextLight = !root.classList.contains('light');
+        root.classList.toggle('light', nextLight);
+        root.classList.toggle('dark', !nextLight);
+        try { localStorage.setItem('kkp_theme_mode', nextLight ? 'light' : 'dark'); } catch (e) {}
+        applyChartTheme();
+        refresh();
+      };
+    }
     $('btnExportCsv').onclick = () => exportData('csv');
     $('btnTemplate').onclick = downloadTemplate;
     $('btnSample').onclick = () => { 

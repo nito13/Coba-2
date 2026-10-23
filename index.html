@@ -1,14 +1,26 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIANSAR KP — Analisis Sarana Prasarana Satuan Pendidikan KKP</title>
+  <script>
+    /* Terapkan tema tersimpan sebelum render (default: gelap, seperti kkp-sarpras-analytics) */
+    (function () {
+      try {
+        var t = localStorage.getItem('kkp_theme_mode');
+        var r = document.documentElement;
+        r.classList.remove('dark', 'light');
+        r.classList.add(t === 'light' ? 'light' : 'dark');
+      } catch (e) {}
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="icon" type="image/png" href="assets/logo-kkp.png">
-  <link rel="stylesheet" href="assets/css/style.css?v=3">
+  <link rel="stylesheet" href="assets/css/style.css?v=4">
 </head>
 <body>
   <!-- ========== SCREEN LOGIN (OTENTIKASI - DINONAKTIFKAN SEMENTARA) ========== -->
@@ -97,88 +109,126 @@
   </div>
 
   <!-- ========== APLIKASI UTAMA (DASHBOARD) ========== -->
-  <div class="app-layout" id="appLayout">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-logo">
-          <img src="assets/logo-kkp.png" alt="Logo KKP">
-        </div>
-        <div>
-          <div class="brand-title">SIANSAR KP</div>
-          <div class="brand-sub">Analisis Sarpras Satdik KKP</div>
-        </div>
-      </div>
-      <nav class="nav">
-        <a href="#ringkasan" class="nav-link active" data-page="ringkasan"><span class="ico">◧</span>Ringkasan</a>
-        <a href="#kondisi" class="nav-link" data-page="kondisi"><span class="ico">◔</span>Analisis Kondisi</a>
-        <a href="#satdik" class="nav-link" data-page="satdik"><span class="ico">▤</span>Per Satuan Pendidikan</a>
-        <a href="#kecukupan" class="nav-link" data-page="kecukupan"><span class="ico">⚖</span>Rasio & Kecukupan</a>
-        <a href="#prioritas" class="nav-link" data-page="prioritas"><span class="ico">⚑</span>Prioritas & Rekomendasi</a>
-        <a href="#peta" class="nav-link" data-page="peta"><span class="ico">⌖</span>Peta Sebaran</a>
-        <a href="#data" class="nav-link" data-page="data"><span class="ico">⇅</span>Data & Impor</a>
-      </nav>
-      <div class="sidebar-foot">
-        <div class="src-badge" id="srcBadge">Data: Data Contoh.xlsx</div>
-        <div class="sidebar-user" id="sidebarUser">
-          <div class="sidebar-user-avatar" id="sidebarAvatar">A</div>
-          <div class="sidebar-user-info">
-            <strong id="sidebarUserName">Pusdik KP</strong>
-            <span id="sidebarUserRole">Administrator Pusat</span>
-          </div>
-          <button type="button" class="btn-sidebar-logout" id="sidebarLogout" title="Keluar dari sistem" style="display: none;">⏻</button>
-        </div>
-        <small>BPPSDM KP · Pusat Pendidikan KP</small>
-      </div>
-    </aside>
+  <!-- Ikon SVG (gaya lucide, sama seperti kkp-sarpras-analytics) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-bar" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+      <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+      <symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+      <symbol id="i-scale" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.130-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.730-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+      <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+      <symbol id="i-print" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></symbol>
+      <symbol id="i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol>
+      <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    </defs>
+  </svg>
 
-    <main class="main">
-      <header class="topbar">
-        <button class="btn-icon menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
-        <div>
-          <h1 id="pageTitle">Ringkasan Eksekutif</h1>
-          <p class="muted" id="pageSub">Gambaran umum kondisi sarana prasarana satuan pendidikan lingkup KKP</p>
-        </div>
-        <div class="topbar-right">
-          <span class="muted small" id="lastUpdate"></span>
-          <button class="btn btn-ghost" onclick="window.print()">⎙ Cetak</button>
-          <div class="user-profile-menu" id="userProfileMenu">
-            <button class="user-badge-btn" id="userMenuToggle" aria-expanded="false" title="Menu Pengguna">
-              <div class="user-avatar" id="userAvatar">PK</div>
-              <div class="user-info-text">
-                <span class="user-name" id="topUserName">Pusdik KP</span>
-                <span class="user-role-tag" id="topUserRole">Admin Pusat</span>
-              </div>
-              <span class="chevron">▾</span>
+  <div class="app-layout" id="appLayout">
+    <!-- NAVBAR ATAS (mengikuti Navbar.jsx kkp-sarpras-analytics) -->
+    <header class="topnav" id="topnav">
+      <div class="container">
+        <div class="topnav-row">
+          <a href="#ringkasan" class="brand" title="Ringkasan Eksekutif">
+            <div class="brand-logo">
+              <img src="assets/logo-kkp.png" alt="Logo Resmi Kementerian Kelautan dan Perikanan">
+            </div>
+            <div style="min-width:0">
+              <h1 class="brand-title">SIANSAR <span>KP</span></h1>
+              <p class="brand-sub">Dashboard Analitik Sarana &amp; Prasarana Satuan Pendidikan Kelautan &amp; Perikanan</p>
+            </div>
+          </a>
+
+          <div class="topnav-actions">
+            <span class="src-badge" id="srcBadge">Data: Data Contoh.xlsx</span>
+            <button type="button" class="btn-export" id="btnTopExport" title="Ekspor data sarpras terfilter ke Microsoft Excel (.xlsx)">
+              <svg class="ico-svg"><use href="#i-download"/></svg><span>Ekspor Excel</span>
             </button>
-            <div class="user-dropdown-menu" id="userDropdown">
-              <div class="user-dropdown-header">
-                <strong id="dropUserFullName">Pusat Pendidikan KP</strong>
-                <span class="muted small" id="dropUserNip">Akses Langsung (Tanpa Login)</span>
-                <span class="user-dept" id="dropUserDept">BPPSDM Kelautan dan Perikanan</span>
+            <button type="button" class="icon-btn print-btn" onclick="window.print()" title="Cetak halaman">
+              <svg class="ico-svg"><use href="#i-print"/></svg>
+            </button>
+            <button type="button" class="icon-btn theme-toggle" id="themeToggle" title="Ganti Mode Terang / Gelap" aria-label="Toggle Theme Mode">
+              <svg class="ico-svg i-sun"><use href="#i-sun"/></svg>
+              <svg class="ico-svg i-moon"><use href="#i-moon"/></svg>
+            </button>
+
+            <div class="user-zone">
+              <div class="user-profile-menu" id="userProfileMenu">
+                <button class="user-badge-btn" id="userMenuToggle" aria-expanded="false" title="Klik untuk melihat profil &amp; hak akses akun">
+                  <div class="user-avatar" id="userAvatar">PK</div>
+                  <div class="user-info-text">
+                    <span class="user-name" id="topUserName">Pusdik KP</span>
+                    <span class="user-role-tag" id="topUserRole">Admin Pusat</span>
+                  </div>
+                </button>
+                <div class="user-dropdown-menu" id="userDropdown">
+                  <div class="user-dropdown-header">
+                    <strong id="dropUserFullName">Pusat Pendidikan KP</strong>
+                    <span class="muted small" id="dropUserNip">Akses Langsung (Tanpa Login)</span>
+                    <span class="user-dept" id="dropUserDept">BPPSDM Kelautan dan Perikanan</span>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <button type="button" class="dropdown-item" id="btnOpenAccountModal">
+                    <span>👤</span> Profil &amp; Hak Akses
+                  </button>
+                  <button type="button" class="dropdown-item" id="btnOpenChangePassModal" style="display: none;">
+                    <span>🔑</span> Ganti Kata Sandi
+                  </button>
+                  <button type="button" class="dropdown-item logout" id="btnLogout" style="display: none;">
+                    <span>🚪</span> Keluar (Logout)
+                  </button>
+                </div>
               </div>
-              <div class="dropdown-divider"></div>
-              <button type="button" class="dropdown-item" id="btnOpenAccountModal">
-                <span>👤</span> Profil &amp; Hak Akses
-              </button>
-              <button type="button" class="dropdown-item" id="btnOpenChangePassModal" style="display: none;">
-                <span>🔑</span> Ganti Kata Sandi
-              </button>
-              <button type="button" class="dropdown-item logout" id="btnLogout" style="display: none;">
-                <span>🚪</span> Keluar (Logout)
-              </button>
             </div>
           </div>
         </div>
-      </header>
 
-      <!-- ROLE / OPERATOR NOTICE BANNER -->
-      <div id="roleBanner" class="role-banner" style="display:none;">
-        <div class="role-banner-icon" id="roleBannerIcon">📍</div>
-        <div class="role-banner-content" id="roleBannerText"></div>
+        <!-- Tab navigasi (desktop) -->
+        <nav class="tabs nav" aria-label="Navigasi utama">
+          <a href="#ringkasan" class="nav-link active" data-page="ringkasan"><svg class="ico-svg"><use href="#i-bar"/></svg>Ringkasan Eksekutif</a>
+          <a href="#kondisi" class="nav-link" data-page="kondisi"><svg class="ico-svg"><use href="#i-pie"/></svg>Analisis Kondisi</a>
+          <a href="#satdik" class="nav-link" data-page="satdik"><svg class="ico-svg"><use href="#i-building"/></svg>Per Satuan Pendidikan</a>
+          <a href="#kecukupan" class="nav-link" data-page="kecukupan"><svg class="ico-svg"><use href="#i-scale"/></svg>Rasio &amp; Kecukupan</a>
+          <a href="#prioritas" class="nav-link" data-page="prioritas"><svg class="ico-svg"><use href="#i-alert"/></svg>Prioritas &amp; Rekomendasi<span class="tab-badge" id="tabBadgePrio" style="display:none"></span></a>
+          <a href="#peta" class="nav-link" data-page="peta"><svg class="ico-svg"><use href="#i-pin"/></svg>Peta Sebaran Geospasial</a>
+          <a href="#data" class="nav-link" data-page="data"><svg class="ico-svg"><use href="#i-db"/></svg>Data &amp; Impor</a>
+        </nav>
       </div>
+    </header>
+
+    <!-- ROLE / OPERATOR NOTICE BANNER -->
+    <div id="roleBanner" class="role-banner" style="display:none;">
+      <div class="role-banner-icon" id="roleBannerIcon">📍</div>
+      <div class="role-banner-content" id="roleBannerText"></div>
+    </div>
+
+    <main class="main container">
+      <!-- HEADER KONTEKS HALAMAN -->
+      <section class="hero">
+        <img class="hero-watermark" src="assets/logo-kkp.png" alt="" aria-hidden="true">
+        <div class="hero-main">
+          <div class="hero-logo"><img src="assets/logo-kkp.png" alt="Logo KKP"></div>
+          <div style="min-width:0">
+            <span class="hero-chip">National Sarpras Overview · BPPSDM KP</span>
+            <h2 id="pageTitle">Ringkasan Eksekutif</h2>
+            <p id="pageSub">Gambaran umum kondisi sarana prasarana satuan pendidikan lingkup KKP</p>
+          </div>
+        </div>
+        <div class="hero-side">
+          <span class="hero-pill on"><svg class="ico-svg" style="width:14px;height:14px"><use href="#i-calendar"/></svg><span id="lastUpdate"></span></span>
+        </div>
+      </section>
 
       <!-- FILTER BAR -->
       <section class="filters card">
+        <div class="filters-ico" title="Filter data"><svg class="ico-svg"><use href="#i-filter"/></svg></div>
         <div class="f-item"><label>Jenis Satdik</label><select id="fJenis"></select></div>
         <div class="f-item"><label>Provinsi</label><select id="fProv"></select></div>
         <div class="f-item"><label>Satuan Pendidikan</label><select id="fSatdik"></select></div>
@@ -188,27 +238,64 @@
 
     <!-- ========== RINGKASAN ========== -->
     <section class="page active" id="page-ringkasan">
+      <!-- Peringatan dini (muncul bila ada sarpras rusak berat) -->
+      <div class="alert-rb" id="alertRB" style="display:none">
+        <div class="alert-rb-main">
+          <div class="alert-rb-ico"><svg class="ico-svg"><use href="#i-shield"/></svg></div>
+          <div style="min-width:0">
+            <div class="alert-rb-title"><span id="alertRBTitle"></span><span class="alert-rb-tag">Perlu Atensi KKP</span></div>
+            <p id="alertRBText"></p>
+          </div>
+        </div>
+        <a href="#prioritas" class="btn-rose">Tinjau Prioritas <svg class="ico-svg" style="width:14px;height:14px"><use href="#i-chev"/></svg></a>
+      </div>
+
       <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-label">Satuan Pendidikan</div><div class="kpi-val" id="kSatdik">-</div><div class="kpi-foot" id="kSatdikF"></div></div>
-        <div class="kpi"><div class="kpi-label">Total Unit Sarpras</div><div class="kpi-val" id="kUnit">-</div><div class="kpi-foot" id="kUnitF"></div></div>
-        <div class="kpi"><div class="kpi-label">Kondisi Baik</div><div class="kpi-val" id="kBaik">-</div><div class="kpi-foot" id="kBaikF"></div></div>
-        <div class="kpi accent"><div class="kpi-label">Indeks Kondisi Sarpras (IKS) <span class="tip" title="IKS = rata-rata tertimbang kondisi: Baik=100, Rusak Ringan=70, Rusak Berat=0">ⓘ</span></div><div class="kpi-val" id="kIks">-</div><div class="kpi-foot" id="kIksF"></div></div>
+        <div class="kpi kpi-cyan">
+          <div class="kpi-head"><span class="kpi-label">Satuan Pendidikan</span><div class="kpi-ico"><svg class="ico-svg"><use href="#i-building"/></svg></div></div>
+          <div class="kpi-val" id="kSatdik">-</div><div class="kpi-foot" id="kSatdikF"></div>
+        </div>
+        <div class="kpi kpi-blue">
+          <div class="kpi-head"><span class="kpi-label">Total Unit Sarpras</span><div class="kpi-ico"><svg class="ico-svg"><use href="#i-db"/></svg></div></div>
+          <div class="kpi-val" id="kUnit">-</div><div class="kpi-foot" id="kUnitF"></div>
+        </div>
+        <div class="kpi kpi-emerald">
+          <div class="kpi-head"><span class="kpi-label">Kondisi Baik</span><div class="kpi-ico"><svg class="ico-svg"><use href="#i-check"/></svg></div></div>
+          <div class="kpi-val" id="kBaik">-</div><div class="kpi-foot" id="kBaikF"></div>
+        </div>
+        <div class="kpi kpi-amber accent">
+          <div class="kpi-head"><span class="kpi-label">Indeks Kondisi (IKS) <span class="tip" title="IKS = rata-rata tertimbang kondisi: Baik=100, Rusak Ringan=70, Rusak Berat=0">ⓘ</span></span><div class="kpi-ico"><svg class="ico-svg"><use href="#i-bar"/></svg></div></div>
+          <div class="kpi-val" id="kIks">-</div><div class="kpi-foot" id="kIksF"></div>
+        </div>
       </div>
 
       <div class="grid g-3-2">
         <div class="card">
-          <div class="card-h"><h3>Insight Otomatis</h3><span class="chip">AI-rule based</span></div>
+          <div class="card-h"><div><h3>Insight Otomatis</h3><p class="muted small" style="margin:4px 0 0">Temuan kunci hasil analisis data sarpras terfilter.</p></div><span class="chip">AI-rule based</span></div>
           <ul class="insights" id="insights"></ul>
         </div>
         <div class="card">
-          <div class="card-h"><h3>Komposisi Kondisi</h3></div>
-          <div class="chart-box sm"><canvas id="cKondisi"></canvas></div>
+          <div class="card-h"><div><h3>Distribusi Kondisi Sarpras</h3><p class="muted small" style="margin:4px 0 0">Klasifikasi kelayakan fisik (standar BMN).</p></div><span class="tip" id="donutTotal"></span></div>
+          <div class="chart-box sm">
+            <canvas id="cKondisi"></canvas>
+            <div class="donut-center"><b id="donutPct">–</b><small>Kondisi Baik</small></div>
+          </div>
+          <div class="mini-stats" id="donutStats"></div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-h"><h3>IKS per Satuan Pendidikan</h3><span class="muted small">diurutkan terendah → tertinggi</span></div>
+        <div class="card-h"><div><h3>Peringkat IKS per Satuan Pendidikan</h3><p class="muted small" style="margin:4px 0 0">Diurutkan terendah → tertinggi · klik batang untuk memfilter satdik.</p></div><a href="#peta" class="tip" style="text-decoration:none">Lihat Peta Sebaran ›</a></div>
         <div class="chart-box tall"><canvas id="cIksSatdik"></canvas></div>
+        <div class="legend-row">
+          <div class="dots">
+            <span><i style="background:#10b981"></i>Baik (≥80)</span>
+            <span><i style="background:#0ea5e9"></i>Cukup (65–79)</span>
+            <span><i style="background:#f59e0b"></i>Kurang (50–64)</span>
+            <span><i style="background:#f43f5e"></i>Kritis (&lt;50)</span>
+          </div>
+          <span class="tip" id="iksAvgNote"></span>
+        </div>
       </div>
     </section>
 
@@ -288,10 +375,10 @@
       <div class="card">
         <div class="card-h"><h3>Peta Sebaran Satuan Pendidikan & IKS</h3>
           <div class="map-legend">
-            <span><i style="background:#16a34a"></i>≥ 80</span>
-            <span><i style="background:#eab308"></i>65–79</span>
-            <span><i style="background:#f97316"></i>50–64</span>
-            <span><i style="background:#dc2626"></i>&lt; 50</span>
+            <span><i style="background:#10b981"></i>≥ 80</span>
+            <span><i style="background:#0ea5e9"></i>65–79</span>
+            <span><i style="background:#f59e0b"></i>50–64</span>
+            <span><i style="background:#f43f5e"></i>&lt; 50</span>
           </div>
         </div>
         <div id="map"></div>
@@ -342,6 +429,9 @@
       <b>Data bersumber dari file resmi Data Contoh.xlsx</b> · BPPSDM KP.
     </footer>
   </main>
+
+  <!-- Navigasi bawah khusus layar HP -->
+  <nav class="mobile-nav" aria-label="Navigasi seluler"><div class="mobile-nav-inner"><a href="#ringkasan" class="nav-link active" data-page="ringkasan"><svg class="ico-svg"><use href="#i-bar"/></svg><span>Ringkasan</span></a><a href="#kondisi" class="nav-link" data-page="kondisi"><svg class="ico-svg"><use href="#i-pie"/></svg><span>Kondisi</span></a><a href="#satdik" class="nav-link" data-page="satdik"><svg class="ico-svg"><use href="#i-building"/></svg><span>Satdik</span></a><a href="#kecukupan" class="nav-link" data-page="kecukupan"><svg class="ico-svg"><use href="#i-scale"/></svg><span>Rasio</span></a><a href="#prioritas" class="nav-link" data-page="prioritas"><svg class="ico-svg"><use href="#i-alert"/></svg><span>Prioritas</span></a><a href="#peta" class="nav-link" data-page="peta"><svg class="ico-svg"><use href="#i-pin"/></svg><span>Peta</span></a><a href="#data" class="nav-link" data-page="data"><svg class="ico-svg"><use href="#i-db"/></svg><span>Data</span></a></div></nav>
 </div><!-- /appLayout -->
 
   <!-- MODAL: Profil Pengguna & Hak Akses -->
@@ -460,6 +550,6 @@
   <script src="assets/js/data-excel.js?v=2"></script>
   <script src="assets/js/data.js?v=8"></script>
   <script src="assets/js/auth.js?v=2"></script>
-  <script src="assets/js/app.js?v=10"></script>
+  <script src="assets/js/app.js?v=11"></script>
 </body>
 </html>
