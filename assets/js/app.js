@@ -267,15 +267,34 @@
 
   // ---------- Pages ----------
   const PAGES = {
+    beranda: ['Beranda — Ringkasan 3 Modul', 'Sintesis terpadu kondisi Sarana Prasarana (Sarpras), Data Pokok Pendidikan (Dapodik), dan Kemitraan Industri (Mitra) BPPSDM KP'],
     ringkasan: ['Ringkasan Eksekutif', 'Gambaran umum kondisi sarana prasarana satuan pendidikan lingkup KKP'],
     kondisi: ['Analisis Program Studi', 'Distribusi kondisi, usia aset sarpras per program studi, dan tren perolehan aset'],
     satdik: ['Per Satuan Pendidikan', 'Perbandingan kondisi sarpras antar Politeknik dan Akademi Komunitas'],
     kecukupan: ['Rasio & Kecukupan', 'Ketersediaan sarpras layak pakai terhadap jumlah peserta didik'],
     prioritas: ['Prioritas & Rekomendasi', 'Pemeringkatan kebutuhan intervensi dan rekomendasi kebijakan'],
     peta: ['Peta Sebaran', 'Sebaran geografis satuan pendidikan dan indeks kondisi sarpras'],
-    data: ['Data & Impor', 'Kelola, impor, dan ekspor data sarana prasarana']
+    data: ['Data & Impor', 'Kelola, impor, dan ekspor data sarana prasarana'],
+    dapodik: ['Ringkasan Dapodik', 'Data pokok peserta didik (taruna/siswa), tenaga pendidik, dan program studi lingkup BPPSDM KP'],
+    'dapo-pd': ['Peserta Didik', 'Jumlah, jenis kelamin, dan sebaran tingkat taruna/siswa aktif per satuan pendidikan'],
+    'dapo-ptk': ['Pendidik & Tenaga Kependidikan', 'Komposisi dosen/guru, instruktur praktik, tenaga kependidikan, dan rasio terhadap peserta didik'],
+    'dapo-prodi': ['Rombel & Program Studi', 'Program studi/kompetensi keahlian, satdik penyelenggara, dan estimasi rombongan belajar'],
+    'dapo-satdik': ['Rekap Satuan Pendidikan', 'Rekapitulasi data pokok pendidikan per satuan pendidikan KKP'],
+    mitra: ['Ringkasan Kemitraan', 'Gambaran umum mitra kerja sama industri, instansi, dan lembaga internasional'],
+    'mitra-dir': ['Direktori Mitra', 'Daftar mitra industri & instansi kerja sama (DUDI) satuan pendidikan KKP'],
+    'mitra-mou': ['MoU & Perjanjian Kerja Sama', 'Pemantauan masa berlaku dokumen MoU/PKS dan kebutuhan perpanjangan'],
+    'mitra-magang': ['Magang & Praktik Laut', 'Kuota dan realisasi penempatan magang/Prala taruna di mitra'],
+    'mitra-serapan': ['Serapan Lulusan', 'Hasil tracer study: lulusan bekerja, wirausaha, studi lanjut, dan belum terserap']
   };
-  let current = 'ringkasan';
+  const MODULES = {
+    beranda: ['beranda'],
+    sarpras: ['ringkasan', 'kondisi', 'satdik', 'kecukupan', 'prioritas', 'peta', 'data'],
+    dapodik: ['dapodik', 'dapo-pd', 'dapo-ptk', 'dapo-prodi', 'dapo-satdik'],
+    mitra: ['mitra', 'mitra-dir', 'mitra-mou', 'mitra-magang', 'mitra-serapan']
+  };
+  const moduleOf = p => Object.keys(MODULES).find(k => MODULES[k].includes(p)) || 'beranda';
+  let current = 'beranda';
+  const lastPage = { beranda: 'beranda', sarpras: 'ringkasan', dapodik: 'dapodik', mitra: 'mitra' };
   const dirty = new Set(Object.keys(PAGES));
   const RENDER = {};
 
@@ -538,6 +557,382 @@
     });
   };
 
+  // ================= MODUL DAPODIK =================
+  // Angka turunan (PTK, L/P, tingkat, rombel) bersifat ilustratif & deterministik per satdik.
+  const seed = (s, n) => {
+    let h = 2166136261;
+    for (const c of String(s) + '|' + n) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    return ((h >>> 0) % 10000) / 10000;
+  };
+  const dapoLevels = j => /politeknik/i.test(j) ? 4 : /akademi/i.test(j) ? 2 : 3;
+  const ROMAN = ['I', 'II', 'III', 'IV'];
+  const dapoMetas = () => Object.values(META).filter(m => ALL.some(r => r.kode === m.kode)).sort((a, b) => a.nama.localeCompare(b.nama));
+  function dapoStats(m) {
+    const taruna = +TARUNA[m.kode] || 0;
+    const laki = Math.round(taruna * (0.7 + seed(m.kode, 'lp') * 0.15));
+    const lv = dapoLevels(m.jenis);
+    const w = Array.from({ length: lv }, (_, i) => 1 + seed(m.kode, 'tk' + i) * 0.35);
+    const ws = w.reduce((a, b) => a + b, 0);
+    const tingkat = w.map(x => Math.round(taruna * x / ws));
+    const dosen = Math.max(12, Math.round(taruna / (14 + seed(m.kode, 'ds') * 10)));
+    const instruktur = Math.round(dosen * (0.25 + seed(m.kode, 'in') * 0.2));
+    const tendik = Math.round(dosen * (0.6 + seed(m.kode, 'tdk') * 0.3));
+    const pendidik = dosen + instruktur;
+    const prodis = [...new Set(ALL.filter(r => r.kode === m.kode).map(r => r.kategori).filter(Boolean))];
+    return {
+      m, taruna, laki, perempuan: taruna - laki, lv, tingkat, dosen, instruktur, tendik, pendidik,
+      ptk: pendidik + tendik, rasio: pendidik ? taruna / pendidik : 0,
+      rombel: Math.max(4, Math.ceil(taruna / 30)), prodis
+    };
+  }
+
+  RENDER.dapodik = function () {
+    const S = dapoMetas().map(dapoStats);
+    const totalTaruna = sum(S, 'taruna');
+    $('dapoSatdik').textContent = fmtNum(S.length);
+    $('dapoSatdikF').textContent = [...groupBy(S, s => s.m.jenis)].map(([j, l]) => `${l.length} ${j}`).join(' · ');
+    $('dapoTaruna').textContent = fmtNum(totalTaruna);
+    $('dapoPendidik').textContent = fmtNum(sum(S, 'ptk'));
+    $('dapoProdi').textContent = fmtNum(new Set(ALL.map(r => r.kategori).filter(Boolean)).size);
+
+    const byJenis = [...groupBy(S, s => s.m.jenis)].map(([j, l]) => [j, sum(l, 'taruna')]);
+    chart('cDapoJenis', {
+      type: 'doughnut',
+      data: { labels: byJenis.map(x => x[0]), datasets: [{ data: byJenis.map(x => x[1]), backgroundColor: PALETTE, borderWidth: 2, borderColor: isDark() ? '#1e293b' : '#fff' }] },
+      options: { cutout: '62%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmtNum(c.raw)} (${pct(c.raw / totalTaruna)})` } } } }
+    });
+    const top = [...S].sort((a, b) => b.taruna - a.taruna).slice(0, 10);
+    chart('cDapoTop', {
+      type: 'bar',
+      data: { labels: top.map(s => short(s.m.nama)), datasets: [{ label: 'Peserta didik', data: top.map(s => s.taruna), backgroundColor: '#06b6d4', borderRadius: 4 }] },
+      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { grid: { display: false } } } }
+    });
+  };
+
+  RENDER['dapo-pd'] = function () {
+    const S = dapoMetas().map(dapoStats);
+    const prov = [...groupBy(S, s => s.m.provinsi)].map(([p, l]) => [p, sum(l, 'taruna')]).sort((a, b) => b[1] - a[1]);
+    chart('cDapoProv', {
+      type: 'bar',
+      data: { labels: prov.map(x => x[0]), datasets: [{ label: 'Peserta didik', data: prov.map(x => x[1]), backgroundColor: '#3b82f6', borderRadius: 4 }] },
+      options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } }
+    });
+    $('tDapoPD').innerHTML = `<thead><tr><th>Satuan Pendidikan</th><th>Jenis</th><th>Provinsi</th><th class="num">Total</th><th class="num">Laki-laki</th><th class="num">Perempuan</th><th>% Perempuan</th><th>Sebaran Tingkat</th><th class="num">Rombel</th></tr></thead><tbody>` +
+      (S.map(s => `<tr><td><b>${esc(short(s.m.nama))}</b></td><td>${esc(s.m.jenis)}</td><td>${esc(s.m.provinsi)}</td>` +
+        `<td class="num"><b>${fmtNum(s.taruna)}</b></td><td class="num">${fmtNum(s.laki)}</td><td class="num">${fmtNum(s.perempuan)}</td>` +
+        `<td><div style="display:flex;gap:8px;align-items:center">${bar(s.taruna ? s.perempuan / s.taruna * 100 : 0, '#ec4899')}<span class="small">${pct(s.taruna ? s.perempuan / s.taruna : NaN)}</span></div></td>` +
+        `<td class="small">${s.tingkat.map((t, i) => `Tk ${ROMAN[i]}: <b>${fmtNum(t)}</b>`).join(' · ')}</td><td class="num">${fmtNum(s.rombel)}</td></tr>`).join('') ||
+        '<tr><td colspan="9" class="muted">Tidak ada data.</td></tr>') + '</tbody>';
+  };
+
+  RENDER['dapo-ptk'] = function () {
+    const S = dapoMetas().map(dapoStats).sort((a, b) => b.ptk - a.ptk);
+    chart('cDapoPTK', {
+      type: 'bar',
+      data: {
+        labels: S.map(s => short(s.m.nama)),
+        datasets: [
+          { label: 'Dosen / Guru', data: S.map(s => s.dosen), backgroundColor: '#06b6d4', borderRadius: 2 },
+          { label: 'Instruktur Praktik', data: S.map(s => s.instruktur), backgroundColor: '#8b5cf6', borderRadius: 2 },
+          { label: 'Tenaga Kependidikan', data: S.map(s => s.tendik), backgroundColor: '#f59e0b', borderRadius: 2 }
+        ]
+      },
+      options: { indexAxis: 'y', plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true, grid: { display: false } } } }
+    });
+    const MAXR = 20;
+    $('tDapoPTK').innerHTML = `<thead><tr><th>Satuan Pendidikan</th><th class="num">Dosen / Guru</th><th class="num">Instruktur</th><th class="num">Tendik</th><th class="num">Total PTK</th><th class="num">Peserta Didik</th><th>Rasio PD : Pendidik</th></tr></thead><tbody>` +
+      [...S].sort((a, b) => b.rasio - a.rasio).map(s => `<tr><td><b>${esc(short(s.m.nama))}</b></td><td class="num">${fmtNum(s.dosen)}</td><td class="num">${fmtNum(s.instruktur)}</td><td class="num">${fmtNum(s.tendik)}</td><td class="num"><b>${fmtNum(s.ptk)}</b></td><td class="num">${fmtNum(s.taruna)}</td>` +
+        `<td><span class="badge ${s.rasio <= MAXR ? 'b-ok' : 'b-no'}">1 : ${f1(s.rasio)}</span>${s.rasio > MAXR ? ` <span class="small muted">+${fmtNum(Math.ceil(s.taruna / MAXR - s.pendidik))} pendidik</span>` : ''}</td></tr>`).join('') + '</tbody>';
+  };
+
+  RENDER['dapo-prodi'] = function () {
+    const S = Object.fromEntries(dapoMetas().map(m => [m.kode, dapoStats(m)]));
+    const rows = [...groupBy(ALL.filter(r => S[r.kode] && r.kategori), r => r.kategori)].map(([k, rs]) => {
+      const kodes = [...new Set(rs.map(r => r.kode))];
+      const peserta = kodes.reduce((a, c) => a + S[c].taruna / Math.max(1, S[c].prodis.length), 0);
+      return { k, kodes, peserta, rombel: Math.ceil(peserta / 30) };
+    }).sort((a, b) => katIdx(a.k) - katIdx(b.k));
+    const maxP = Math.max(1, ...rows.map(r => r.peserta));
+    $('tDapoProdi').innerHTML = `<thead><tr><th>#</th><th>Program Studi / Keahlian</th><th class="num">Satdik Penyelenggara</th><th class="num">Est. Peserta Didik</th><th class="num">Est. Rombel</th><th>Proporsi</th><th>Contoh Penyelenggara</th></tr></thead><tbody>` +
+      rows.map((r, i) => `<tr><td>${i + 1}</td><td><b>${esc(r.k)}</b></td><td class="num">${fmtNum(r.kodes.length)}</td><td class="num">${fmtNum(r.peserta)}</td><td class="num">${fmtNum(r.rombel)}</td>` +
+        `<td>${bar(r.peserta / maxP * 100, '#10b981')}</td><td class="small">${r.kodes.slice(0, 3).map(c => esc(short(nameOf(c)))).join(', ')}${r.kodes.length > 3 ? ` <span class="muted">+${r.kodes.length - 3}</span>` : ''}</td></tr>`).join('') + '</tbody>';
+  };
+
+  RENDER['dapo-satdik'] = function () {
+    const S = dapoMetas().map(dapoStats);
+    $('tDapodik').innerHTML = `<thead><tr><th>#</th><th>Satuan Pendidikan</th><th>Jenjang / Jenis</th><th>Provinsi</th><th class="num">Peserta Didik</th><th class="num">Pendidik &amp; Tendik</th><th class="num">Rombel</th><th>Program Studi / Keahlian</th><th>Status Dapodik</th></tr></thead><tbody>` +
+      S.map((s, idx) => `<tr><td>${idx + 1}</td><td><b>${esc(s.m.nama)}</b><div class="small muted">${esc(s.m.kode)}</div></td><td><span class="badge b-rr">${esc(s.m.jenis)}</span></td><td>${esc(s.m.provinsi)}</td>` +
+        `<td class="num"><b>${fmtNum(s.taruna)}</b></td><td class="num">${fmtNum(s.ptk)}</td><td class="num">${fmtNum(s.rombel)}</td>` +
+        `<td>${s.prodis.slice(0, 3).map(p => `<span class="tag-perm">${esc(p)}</span>`).join(' ')}${s.prodis.length > 3 ? ` <span class="muted small">+${s.prodis.length - 3}</span>` : ''}</td>` +
+        `<td><span class="badge b-baik">Aktif · Sinkron</span></td></tr>`).join('') + '</tbody>';
+  };
+
+  // ================= MODUL MITRA =================
+  // Daftar mitra contoh (ilustratif) — ganti dengan data resmi bila tersedia.
+  const MITRA = [
+    { nama: 'PT Perikanan Indonesia (Persero)', jenis: 'BUMN Perikanan', bidang: 'Penangkapan, Pengolahan & Logistik Cold Storage', satdik: 'Poltek AUP Jakarta, Poltek KP Sidoarjo, Poltek KP Bitung', kuota: 120, dok: 'MoU', mulai: '2024-03-01', akhir: '2028-02-29' },
+    { nama: 'PT Central Proteina Prima Tbk (CP Prima)', jenis: 'Industri Budidaya', bidang: 'Budidaya Perikanan, Pakan & Kesehatan Ikan', satdik: 'Poltek KP Sidoarjo, Poltek KP Karawang, Poltek KP Bone', kuota: 85, dok: 'PKS', mulai: '2023-07-10', akhir: '2027-07-09' },
+    { nama: 'PT Samudera Indonesia Tbk', jenis: 'Pelayaran & Maritim', bidang: 'Permesinan Kapal, Nautika & Kepelautan Niaga/Perikanan', satdik: 'Poltek AUP Jakarta, Poltek KP Sorong, Poltek KP Kupang', kuota: 64, dok: 'PKS', mulai: '2024-01-15', akhir: '2027-01-14' },
+    { nama: 'Japan International Cooperation Agency (JICA)', jenis: 'Mitra Internasional', bidang: 'Magang Kapal Perikanan Luar Negeri & Transfer Teknologi', satdik: 'Seluruh Politeknik KP & SUPM KKP', kuota: 150, dok: 'MoU', mulai: '2023-05-20', akhir: '2028-05-19' },
+    { nama: 'PT Kelola Mina Laut (KML Food)', jenis: 'Industri Pengolahan', bidang: 'Pengolahan Hasil Laut, Mutu (HACCP) & Ekspor', satdik: 'Poltek KP Sidoarjo, Poltek KP Jembrana, Poltek KP Dumai', kuota: 70, dok: 'PKS', mulai: '2024-02-01', akhir: '2027-01-31' },
+    { nama: 'PT Phillips Seafoods Indonesia', jenis: 'Industri Pengolahan', bidang: 'Pengolahan Rajungan & Produk Perikanan Ekspor', satdik: 'Poltek KP Pangandaran, Poltek KP Sidoarjo, SUPM Tegal', kuota: 55, dok: 'PKS', mulai: '2023-01-01', akhir: '2026-12-31' },
+    { nama: 'PT Suri Tani Pemuka (JAPFA Aquaculture)', jenis: 'Industri Budidaya', bidang: 'Hatchery, Tambak Udang Intensif & Pakan Akuakultur', satdik: 'Poltek KP Jembrana, Poltek KP Sidoarjo, AK KP Wakatobi', kuota: 60, dok: 'PKS', mulai: '2024-06-01', akhir: '2027-05-31' },
+    { nama: 'Asosiasi Tuna Longline Indonesia (ATLI)', jenis: 'Asosiasi Industri', bidang: 'Praktik Laut (Prala) Kapal Penangkap Ikan & Sertifikasi Awak Kapal', satdik: 'Poltek KP Bitung, Poltek KP Jembrana, Poltek AUP Jakarta', kuota: 110, dok: 'MoU', mulai: '2024-04-01', akhir: '2028-03-31' },
+    { nama: 'Tokyo University of Marine Science and Technology', jenis: 'Mitra Internasional', bidang: 'Riset Terapan, Pertukaran Dosen & Taruna', satdik: 'Poltek AUP Jakarta, Poltek KP Sidoarjo', kuota: 20, dok: 'MoU', mulai: '2022-09-01', akhir: '2027-08-31' },
+    { nama: 'Balai Besar Penangkapan Ikan (BBPI) Semarang', jenis: 'Instansi Pemerintah', bidang: 'Uji Alat Tangkap, Praktik Teknologi Penangkapan Ikan', satdik: 'Poltek KP Tegal, SUPM Tegal', kuota: 40, dok: 'PKS', mulai: '2021-08-01', akhir: '2025-07-31' }
+  ];
+  const TODAY = new Date();
+  const monthsLeft = d => (new Date(d) - TODAY) / (1000 * 60 * 60 * 24 * 30.44);
+  const fmtDate = d => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  function mouStatus(m) {
+    const ml = monthsLeft(m.akhir);
+    if (ml < 0) return { ml, label: 'Perlu Perpanjangan', cls: 'b-rb' };
+    if (ml <= 6) return { ml, label: 'Segera Berakhir', cls: 'b-rs' };
+    return { ml, label: 'Aktif', cls: 'b-baik' };
+  }
+  function updateMouBadge() {
+    const b = $('tabBadgeMou');
+    if (!b) return;
+    const n = MITRA.filter(m => mouStatus(m).label !== 'Aktif').length;
+    b.style.display = n ? 'inline-block' : 'none';
+    b.textContent = n;
+  }
+  function magangStats() {
+    return dapoMetas().map(m => {
+      const taruna = +TARUNA[m.kode] || 0;
+      const kuota = Math.round(taruna * (0.18 + seed(m.kode, 'kq') * 0.1));
+      const placed = Math.round(kuota * (0.6 + seed(m.kode, 'pl') * 0.38));
+      const ln = Math.round(placed * (0.08 + seed(m.kode, 'ln') * 0.15));
+      return { m, kuota, placed, ln, dn: placed - ln, nMitra: 2 + Math.floor(seed(m.kode, 'nm') * 7), real: kuota ? placed / kuota : 0 };
+    });
+  }
+  function serapanStats() {
+    return dapoMetas().map(m => {
+      const lulusan = Math.round((+TARUNA[m.kode] || 0) / dapoLevels(m.jenis));
+      const pb = 0.55 + seed(m.kode, 'bk') * 0.25, pw = 0.04 + seed(m.kode, 'wr') * 0.06, ps = 0.03 + seed(m.kode, 'st') * 0.06;
+      const bekerja = Math.round(lulusan * pb), wira = Math.round(lulusan * pw), studi = Math.round(lulusan * ps);
+      const belum = Math.max(0, lulusan - bekerja - wira - studi);
+      return { m, lulusan, bekerja, wira, studi, belum, serap: lulusan ? (bekerja + wira + studi) / lulusan : 0 };
+    });
+  }
+
+  RENDER.mitra = function () {
+    const S = serapanStats();
+    const lul = sum(S, 'lulusan');
+    $('mitraTotal').textContent = fmtNum(MITRA.length);
+    $('mitraDudi').textContent = fmtNum(MITRA.filter(m => !/internasional|pemerintah/i.test(m.jenis)).length);
+    $('mitraSerapan').textContent = pct(lul ? (sum(S, 'bekerja') + sum(S, 'wira') + sum(S, 'studi')) / lul : NaN);
+    $('mitraMou').textContent = fmtNum(MITRA.filter(m => mouStatus(m).ml >= 0).length);
+    updateMouBadge();
+
+    const kat = [...groupBy(MITRA, m => m.jenis)].map(([j, l]) => [j, l.length]);
+    chart('cMitraKat', {
+      type: 'doughnut',
+      data: { labels: kat.map(x => x[0]), datasets: [{ data: kat.map(x => x[1]), backgroundColor: PALETTE, borderWidth: 2, borderColor: isDark() ? '#1e293b' : '#fff' }] },
+      options: { cutout: '60%', plugins: { legend: { position: 'bottom' } } }
+    });
+    const kq = [...MITRA].sort((a, b) => b.kuota - a.kuota);
+    chart('cMitraKuota', {
+      type: 'bar',
+      data: { labels: kq.map(m => m.nama.replace(/\s*\(.*\)/, '')), datasets: [{ label: 'Kuota magang/thn', data: kq.map(m => m.kuota), backgroundColor: '#10b981', borderRadius: 4 }] },
+      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { grid: { display: false }, ticks: { callback: function (v) { const l = this.getLabelForValue(v); return l.length > 28 ? l.slice(0, 27) + '…' : l; } } } } }
+    });
+  };
+
+  RENDER['mitra-dir'] = function () {
+    const q = (($('mitraSearch') && $('mitraSearch').value) || '').toLowerCase();
+    const list = MITRA.filter(m => !q || `${m.nama} ${m.jenis} ${m.bidang} ${m.satdik}`.toLowerCase().includes(q));
+    $('tMitra').innerHTML = `<thead><tr><th>#</th><th>Nama Mitra / Lembaga</th><th>Kategori</th><th>Bidang Kerja Sama</th><th>Satdik Terkait</th><th class="num">Kuota Magang/Thn</th><th>Status</th></tr></thead><tbody>` +
+      (list.map((m, i) => { const s = mouStatus(m); return `<tr><td>${i + 1}</td><td><b>${esc(m.nama)}</b></td><td><span class="badge b-rr">${esc(m.jenis)}</span></td><td>${esc(m.bidang)}</td><td class="small">${esc(m.satdik)}</td><td class="num"><b>${fmtNum(m.kuota)}</b></td><td><span class="badge ${s.cls}">${s.label}</span></td></tr>`; }).join('') ||
+        '<tr><td colspan="7" class="muted">Mitra tidak ditemukan.</td></tr>') + '</tbody>';
+  };
+
+  RENDER['mitra-mou'] = function () {
+    updateMouBadge();
+    const list = MITRA.map((m, i) => ({ m, i, s: mouStatus(m) })).sort((a, b) => a.s.ml - b.s.ml);
+    $('tMitraMou').innerHTML = `<thead><tr><th>No. Dokumen</th><th>Mitra</th><th>Jenis</th><th>Mulai</th><th>Berakhir</th><th>Masa Berjalan</th><th class="num">Sisa</th><th>Status</th></tr></thead><tbody>` +
+      list.map(({ m, i, s }) => {
+        const tot = new Date(m.akhir) - new Date(m.mulai), el = Math.min(1, Math.max(0, (TODAY - new Date(m.mulai)) / tot));
+        const col = s.cls === 'b-rb' ? '#f43f5e' : s.cls === 'b-rs' ? '#f59e0b' : '#06b6d4';
+        return `<tr><td class="mono small">${m.dok}/${String(i + 1).padStart(3, '0')}/BPPSDMKP/${m.mulai.slice(0, 4)}</td><td><b>${esc(m.nama)}</b></td><td><span class="badge b-rr">${m.dok}</span></td>` +
+          `<td>${fmtDate(m.mulai)}</td><td>${fmtDate(m.akhir)}</td><td><div style="display:flex;gap:8px;align-items:center">${bar(el * 100, col)}<span class="small">${Math.round(el * 100)}%</span></div></td>` +
+          `<td class="num">${s.ml < 0 ? `<span class="down">lewat ${Math.ceil(-s.ml)} bln</span>` : `${Math.floor(s.ml)} bln`}</td><td><span class="badge ${s.cls}">${s.label}</span></td></tr>`;
+      }).join('') + '</tbody>';
+  };
+
+  RENDER['mitra-magang'] = function () {
+    const S = magangStats().sort((a, b) => b.kuota - a.kuota);
+    chart('cMitraMagang', {
+      type: 'bar',
+      data: {
+        labels: S.map(s => short(s.m.nama)),
+        datasets: [
+          { label: 'Kuota mitra', data: S.map(s => s.kuota), backgroundColor: isDark() ? '#475569' : '#cbd5e1', borderRadius: 3 },
+          { label: 'Taruna ditempatkan', data: S.map(s => s.placed), backgroundColor: '#06b6d4', borderRadius: 3 }
+        ]
+      },
+      options: { indexAxis: 'y', plugins: { legend: { position: 'bottom' } }, scales: { y: { grid: { display: false } } } }
+    });
+    $('tMitraMagang').innerHTML = `<thead><tr><th>Satuan Pendidikan</th><th class="num">Jumlah Mitra</th><th class="num">Kuota</th><th class="num">Ditempatkan</th><th class="num">Dalam Negeri</th><th class="num">Luar Negeri</th><th>Realisasi</th></tr></thead><tbody>` +
+      S.map(s => `<tr><td><b>${esc(short(s.m.nama))}</b></td><td class="num">${s.nMitra}</td><td class="num">${fmtNum(s.kuota)}</td><td class="num"><b>${fmtNum(s.placed)}</b></td><td class="num">${fmtNum(s.dn)}</td><td class="num">${fmtNum(s.ln)}</td>` +
+        `<td><div style="display:flex;gap:8px;align-items:center">${bar(s.real * 100, iksColor(s.real * 100))}<b>${pct(s.real)}</b></div></td></tr>`).join('') + '</tbody>';
+  };
+
+  RENDER['mitra-serapan'] = function () {
+    const S = serapanStats().sort((a, b) => a.serap - b.serap);
+    const P = (s, k) => s.lulusan ? s[k] / s.lulusan * 100 : 0;
+    chart('cMitraSerapan', {
+      type: 'bar',
+      data: {
+        labels: S.map(s => short(s.m.nama)),
+        datasets: [
+          { label: 'Bekerja', data: S.map(s => P(s, 'bekerja')), backgroundColor: '#10b981' },
+          { label: 'Wirausaha', data: S.map(s => P(s, 'wira')), backgroundColor: '#8b5cf6' },
+          { label: 'Studi Lanjut', data: S.map(s => P(s, 'studi')), backgroundColor: '#0ea5e9' },
+          { label: 'Belum Terserap', data: S.map(s => P(s, 'belum')), backgroundColor: '#f43f5e' }
+        ]
+      },
+      options: { indexAxis: 'y', plugins: { tooltip: pctTooltip, legend: { position: 'bottom' } }, scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, y: { stacked: true, grid: { display: false } } } }
+    });
+    $('tMitraSerapan').innerHTML = `<thead><tr><th>Satuan Pendidikan</th><th class="num">Lulusan/Thn</th><th class="num">Bekerja</th><th class="num">Wirausaha</th><th class="num">Studi Lanjut</th><th class="num">Belum Terserap</th><th>Keterserapan</th></tr></thead><tbody>` +
+      S.map(s => `<tr><td><b>${esc(short(s.m.nama))}</b></td><td class="num">${fmtNum(s.lulusan)}</td><td class="num">${fmtNum(s.bekerja)}</td><td class="num">${fmtNum(s.wira)}</td><td class="num">${fmtNum(s.studi)}</td><td class="num">${fmtNum(s.belum)}</td>` +
+        `<td><div style="display:flex;gap:8px;align-items:center">${bar(s.serap * 100, iksColor(s.serap * 100))}<b>${pct(s.serap)}</b></div></td></tr>`).join('') + '</tbody>';
+  };
+
+  // ================= BERANDA: RINGKASAN TERPADU 3 MODUL =================
+  RENDER.beranda = function () {
+    const A = agg(ALL);
+    const metas = dapoMetas();
+    const D = metas.map(dapoStats);
+    const M = magangStats();
+    const S = serapanStats();
+
+    const totalTaruna = sum(D, 'taruna');
+    const totalPTK = sum(D, 'ptk');
+    const totalRombel = sum(D, 'rombel');
+    const totalProdi = new Set(ALL.map(r => r.kategori).filter(Boolean)).size;
+    const totalLulusan = sum(S, 'lulusan');
+    const totalTerserap = sum(S, 'bekerja') + sum(S, 'wira') + sum(S, 'studi');
+    const pctSerapan = totalLulusan ? totalTerserap / totalLulusan : 0;
+    const activeMou = MITRA.filter(m => mouStatus(m).ml >= 0).length;
+    const dudiCount = MITRA.filter(m => !/internasional|pemerintah/i.test(m.jenis)).length;
+
+    // 1. 4 KPI Utama Lintas Modul
+    if ($('allSatdik')) $('allSatdik').textContent = fmtNum(metas.length);
+    if ($('allSatdikF')) $('allSatdikF').textContent = [...groupBy(metas, m => m.jenis)].map(([j, l]) => `${l.length} ${j}`).join(' · ');
+    if ($('allIks')) $('allIks').textContent = f1(A.iks);
+    if ($('allIksF')) $('allIksF').innerHTML = `${iksBadge(A.iks)} · ${fmtNum(A.unit)} unit (${pct(A.k['Baik'] / A.unit)} baik)`;
+    if ($('allTaruna')) $('allTaruna').textContent = fmtNum(totalTaruna);
+    if ($('allTarunaF')) $('allTarunaF').textContent = `${fmtNum(totalPTK)} PTK · ${fmtNum(totalRombel)} Rombel · ${fmtNum(totalProdi)} Prodi`;
+    if ($('allSerapan')) $('allSerapan').textContent = pct(pctSerapan);
+    if ($('allSerapanF')) $('allSerapanF').textContent = `${fmtNum(MITRA.length)} Mitra Aktif · ${fmtNum(sum(M, 'placed'))} Taruna Magang`;
+
+    // 2. 3 Kartu Pilar Ringkasan (Sarpras, Dapodik, Mitra)
+    if ($('sumSarprasBadge')) $('sumSarprasBadge').textContent = `IKS ${f1(A.iks)} (${iksLevel(A.iks)})`;
+    if ($('sumSarprasStats')) {
+      $('sumSarprasStats').innerHTML = [
+        ['Total Unit', fmtNum(A.unit), 'var(--text-strong)'],
+        ['Kondisi Baik', pct(A.k['Baik'] / A.unit), 'var(--emerald-t)'],
+        ['Rusak Berat', pct(A.k['Rusak Berat'] / A.unit), 'var(--rose-t)']
+      ].map(([l, v, col]) => `<div class="mini-stat"><span>${l}</span><b style="color:${col}">${v}</b></div>`).join('');
+    }
+    if ($('sumSarprasNote')) $('sumSarprasNote').textContent = `Rata-rata usia aset: ${f1(A.avgAge)} tahun`;
+
+    if ($('sumDapoStats')) {
+      $('sumDapoStats').innerHTML = [
+        ['Peserta Didik', fmtNum(totalTaruna), 'var(--sky-t)'],
+        ['Pendidik & Tendik', fmtNum(totalPTK), 'var(--emerald-t)'],
+        ['Rombel Aktif', fmtNum(totalRombel), 'var(--amber-t)']
+      ].map(([l, v, col]) => `<div class="mini-stat"><span>${l}</span><b style="color:${col}">${v}</b></div>`).join('');
+    }
+    if ($('sumDapoNote')) $('sumDapoNote').textContent = `${fmtNum(totalProdi)} Program Studi / Keahlian`;
+
+    if ($('sumMitraBadge')) $('sumMitraBadge').textContent = `${fmtNum(activeMou)} MoU/PKS Aktif`;
+    if ($('sumMitraStats')) {
+      $('sumMitraStats').innerHTML = [
+        ['Mitra DUDI', `${fmtNum(dudiCount)} / ${fmtNum(MITRA.length)}`, 'var(--accent)'],
+        ['Magang/Prala', fmtNum(sum(M, 'placed')), 'var(--sky-t)'],
+        ['Terserap Kerja', pct(pctSerapan), 'var(--emerald-t)']
+      ].map(([l, v, col]) => `<div class="mini-stat"><span>${l}</span><b style="color:${col}">${v}</b></div>`).join('');
+    }
+    if ($('sumMitraNote')) $('sumMitraNote').textContent = `Kuota mitra: ${fmtNum(sum(M, 'kuota'))} taruna/thn`;
+
+    // 3. Data Gabungan per Satdik untuk Grafik & Tabel Matriks
+    const byKodeSarpras = groupBy(ALL, r => r.kode);
+    const dapoByKode = Object.fromEntries(D.map(d => [d.m.kode, d]));
+    const magangByKode = Object.fromEntries(M.map(m => [m.m.kode, m]));
+    const serapByKode = Object.fromEntries(S.map(s => [s.m.kode, s]));
+
+    const combined = metas.map(m => {
+      const sRows = byKodeSarpras.get(m.kode) || [];
+      const sa = agg(sRows);
+      const dp = dapoByKode[m.kode];
+      const mg = magangByKode[m.kode];
+      const sr = serapByKode[m.kode];
+      return { m, sa, dp, mg, sr };
+    }).sort((a, b) => b.sa.iks - a.sa.iks);
+
+    chart('cAllKomparasi', {
+      type: 'bar',
+      data: {
+        labels: combined.map(x => short(x.m.nama)),
+        datasets: [
+          { label: 'IKS Sarpras (0–100)', data: combined.map(x => +x.sa.iks.toFixed(1)), backgroundColor: '#06b6d4', borderRadius: 3 },
+          { label: '% Keterserapan Lulusan (Mitra)', data: combined.map(x => +(x.sr.serap * 100).toFixed(1)), backgroundColor: '#10b981', borderRadius: 3 }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { position: 'bottom' } },
+        scales: { x: { min: 0, max: 100 }, y: { grid: { display: false } } }
+      }
+    });
+
+    const byTaruna = [...combined].sort((a, b) => b.dp.taruna - a.dp.taruna);
+    chart('cAllDistribusi', {
+      type: 'bar',
+      data: {
+        labels: byTaruna.map(x => short(x.m.nama)),
+        datasets: [
+          { label: 'Peserta Didik (Dapodik)', data: byTaruna.map(x => x.dp.taruna), backgroundColor: '#3b82f6', borderRadius: 3 },
+          { label: 'Kuota Magang (Mitra)', data: byTaruna.map(x => x.mg.kuota), backgroundColor: '#f59e0b', borderRadius: 3 }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { grid: { display: false } } }
+      }
+    });
+
+    if ($('tAllSummary')) {
+      $('tAllSummary').innerHTML = `<thead><tr>
+        <th>#</th>
+        <th>Satuan Pendidikan</th>
+        <th>Jenis</th>
+        <th class="num">Unit Sarpras</th>
+        <th>IKS (Sarpras)</th>
+        <th class="num">Peserta Didik (Dapodik)</th>
+        <th class="num">PTK (Dapodik)</th>
+        <th class="num">Rombel</th>
+        <th class="num">Magang Ditempatkan (Mitra)</th>
+        <th>Serapan Lulusan (Mitra)</th>
+      </tr></thead><tbody>` +
+        combined.map((x, i) => `<tr>
+          <td>${i + 1}</td>
+          <td><b>${esc(short(x.m.nama))}</b><div class="small muted">${esc(x.m.provinsi)}</div></td>
+          <td><span class="badge b-rr">${esc(x.m.jenis)}</span></td>
+          <td class="num">${fmtNum(x.sa.unit)}</td>
+          <td><div style="display:flex;gap:8px;align-items:center">${bar(x.sa.iks, iksColor(x.sa.iks))}<b>${f1(x.sa.iks)}</b></div></td>
+          <td class="num"><b>${fmtNum(x.dp.taruna)}</b></td>
+          <td class="num">${fmtNum(x.dp.ptk)}</td>
+          <td class="num">${fmtNum(x.dp.rombel)}</td>
+          <td class="num">${fmtNum(x.mg.placed)} / ${fmtNum(x.mg.kuota)}</td>
+          <td><span class="badge b-baik">${pct(x.sr.serap)}</span></td>
+        </tr>`).join('') + '</tbody>';
+    }
+  };
+
   function renderTable(el, cols, data, st, opts) {
     opts = opts || {};
     let d = data;
@@ -558,20 +953,57 @@
   }
 
   // ---------- Navigation ----------
+  function closeMobileSidebar() {
+    if ($('sidebar')) $('sidebar').classList.remove('open');
+    if ($('sidebarBackdrop')) $('sidebarBackdrop').classList.remove('show');
+  }
+
   function activate(page) {
+    if (page === 'sarpras') page = lastPage.sarpras;
+    if (!PAGES[page]) page = 'beranda';
     current = page;
+
+    const activeModule = moduleOf(page);
+    lastPage[activeModule] = page;
+
+    // Update halaman aktif
     document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+    // Update chip bar, sub-menu sidebar & mobile nav
     document.querySelectorAll('.nav-link').forEach(a => a.classList.toggle('active', a.dataset.page === page));
+    // Update item aktif di Sidenavbar (Beranda, Sarpras, Dapodik, Mitra)
+    document.querySelectorAll('.sidenav-item').forEach(a => a.classList.toggle('active', a.dataset.module === activeModule));
+
+    // Tampilkan navigasi milik modul aktif saja
+    document.querySelectorAll('.module-tabs, .sidenav-secondary').forEach(el => {
+      el.style.display = el.dataset.module === activeModule ? '' : 'none';
+    });
+    document.querySelectorAll('.mobile-nav[data-module]').forEach(el => {
+      el.classList.toggle('hidden-mod', el.dataset.module !== activeModule);
+    });
+    // Filter data hanya berlaku untuk modul Sarpras
+    if ($('sarprasFilters')) $('sarprasFilters').style.display = activeModule === 'sarpras' ? '' : 'none';
+
+    // Update Hero chip, judul & subjudul
+    if ($('heroChip')) {
+      const chips = {
+        beranda: 'Executive Portal · Ringkasan 3 Modul (Sarpras · Dapodik · Mitra)',
+        sarpras: 'National Sarpras Overview · BPPSDM KP',
+        dapodik: 'Data Pokok Pendidikan · BPPSDM KP',
+        mitra: 'Kemitraan & Dunia Industri · BPPSDM KP'
+      };
+      $('heroChip').textContent = chips[activeModule];
+    }
     $('pageTitle').textContent = PAGES[page][0];
     $('pageSub').textContent = PAGES[page][1];
-    if ($('sidebar')) $('sidebar').classList.remove('open');
+    closeMobileSidebar();
   }
   function show(page) {
     if (window.SARPRAS_AUTH && !window.SARPRAS_AUTH.isAuthenticated()) {
       renderAuthState();
       return;
     }
-    if (!PAGES[page]) page = 'ringkasan';
+    if (page === 'sarpras') page = lastPage.sarpras;
+    if (!PAGES[page]) page = 'beranda';
     activate(page);
     if (dirty.has(page)) { dirty.delete(page); RENDER[page](); }
     else if (page === 'peta' && map) setTimeout(() => map.invalidateSize(), 50);
@@ -1030,10 +1462,47 @@
       fillFilters();
       refresh();
     };
-    if ($('menuToggle') && $('sidebar')) $('menuToggle').onclick = () => $('sidebar').classList.toggle('open');
+    const toggleSidebar = () => {
+      const sb = $('sidebar');
+      const bd = $('sidebarBackdrop');
+      if (!sb) return;
+      if (window.innerWidth <= 767) {
+        const isOpen = sb.classList.toggle('open');
+        if (bd) bd.classList.toggle('show', isOpen);
+      } else {
+        const isCollapsed = sb.classList.toggle('collapsed');
+        try { localStorage.setItem('kkp_sidebar_collapsed', isCollapsed ? '1' : '0'); } catch (e) {}
+        if (current === 'peta' && map) setTimeout(() => map.invalidateSize(), 250);
+      }
+    };
+    if ($('menuToggle')) $('menuToggle').onclick = toggleSidebar;
+    if ($('sidebarCollapseBtn')) $('sidebarCollapseBtn').onclick = toggleSidebar;
+    if ($('sidebarBackdrop')) $('sidebarBackdrop').onclick = closeMobileSidebar;
+    try {
+      if (localStorage.getItem('kkp_sidebar_collapsed') === '1' && window.innerWidth > 767 && $('sidebar')) {
+        $('sidebar').classList.add('collapsed');
+      }
+    } catch (e) {}
+    document.querySelectorAll('.sidenav-item').forEach(item => {
+      item.addEventListener('click', e => {
+        const mod = item.dataset.module;
+        if (mod) {
+          e.preventDefault();
+          const targetHash = lastPage[mod] || mod;
+          if (location.hash.slice(1) !== targetHash) {
+            location.hash = targetHash;
+          } else {
+            show(targetHash);
+          }
+        }
+      });
+    });
     window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 
     $('search').addEventListener('input', e => { tableState.data.q = e.target.value; tableState.data.page = 1; RENDER.data(); });
+    if ($('mitraSearch')) {
+      $('mitraSearch').addEventListener('input', () => RENDER['mitra-dir']());
+    }
     $('btnExportXlsx').onclick = () => exportData('xlsx');
     if ($('btnTopExport')) $('btnTopExport').onclick = () => exportData('xlsx');
     if ($('themeToggle')) {
@@ -1076,7 +1545,7 @@
     setData(rows && rows.length ? rows : defaultData, rows && rows.length ? 'import' : 'excel');
 
     if (isAuth) {
-      activate(PAGES[location.hash.slice(1)] ? location.hash.slice(1) : 'ringkasan');
+      show(location.hash.slice(1) || 'beranda');
     }
 
     // Re-measure chart labels once the web font has loaded (prevents clipped axis labels).

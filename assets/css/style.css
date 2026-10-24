@@ -104,35 +104,349 @@ html.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 .ico-svg { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ---------- Layout ---------- */
+/* ---------- Layout (Gaya YouTube Web) ---------- */
 .app-layout { display: flex; flex-direction: column; min-height: 100vh; width: 100%; }
 .app-layout.hidden { display: none !important; }
-.container { width: 100%; max-width: 1280px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+.yt-body { display: flex; flex: 1; align-items: stretch; min-width: 0; position: relative; }
+.app-main-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.container { width: 100%; max-width: 1360px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
 
-/* ---------- Top Navbar ---------- */
+/* ---------- Top Navbar (YouTube Masthead) ---------- */
 .topnav {
-  position: sticky; top: 0; z-index: 1000;
-  background: var(--header-bg);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  height: 56px;
+  padding: 0 16px;
+  background: var(--bg);
   border-bottom: 1px solid var(--border-soft);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, .25), 0 8px 10px -6px rgba(0, 0, 0, .2);
   transition: background-color .2s;
 }
-html.light .topnav { border-bottom-color: #cbd5e1; box-shadow: 0 1px 3px rgba(0, 0, 0, .06); }
-.topnav-row { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 12px; }
-
-.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; min-width: 0; }
-.brand-logo {
-  width: 44px; height: 44px; border-radius: 12px; background: #fff; padding: 4px; flex-shrink: 0;
-  display: grid; place-items: center; border: 1px solid rgba(34, 211, 238, .5);
-  box-shadow: 0 10px 15px -3px rgba(6, 182, 212, .2); transition: transform .2s;
+html.light .topnav {
+  background: #ffffff;
+  border-bottom-color: #e2e8f0;
 }
-html.light .brand-logo { border-color: #000; box-shadow: 0 4px 10px rgba(148, 163, 184, .25); }
-.brand:hover .brand-logo { transform: scale(1.05); }
+.topnav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  gap: 12px;
+}
+.topnav-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Tombol Hamburger Bulat ala YouTube */
+.yt-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-strong);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color .15s;
+}
+.yt-icon-btn .ico-svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.8;
+}
+.yt-icon-btn:hover {
+  background: rgba(255, 255, 255, .1);
+}
+.yt-icon-btn:active {
+  background: rgba(255, 255, 255, .18);
+}
+html.light .yt-icon-btn:hover {
+  background: rgba(0, 0, 0, .06);
+}
+html.light .yt-icon-btn:active {
+  background: rgba(0, 0, 0, .12);
+}
+
+/* ---------- Side Navbar Gaya YouTube (Guide & Mini-Guide) ---------- */
+.sidenav {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  z-index: 1020;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  transition: width .15s ease, transform .22s cubic-bezier(.4, 0, .2, 1), background-color .2s;
+}
+html.light .sidenav {
+  background: #ffffff;
+}
+
+.sidenav-drawer-head {
+  display: none;
+  align-items: center;
+  gap: 14px;
+  height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;
+}
+
+.sidenav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 12px 16px;
+  scrollbar-width: thin;
+}
+.sidenav-scroll::-webkit-scrollbar { width: 6px; }
+.sidenav-scroll::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
+.sidenav:hover .sidenav-scroll::-webkit-scrollbar-thumb { background: #334155; }
+html.light .sidenav:hover .sidenav-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; }
+
+.sidenav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Item utama YouTube Guide (Expanded: 240px) */
+.sidenav-item,
+.sidenav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  white-space: nowrap;
+  transition: background-color .12s ease;
+}
+.sidenav-subitem {
+  height: 38px;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.sidenav-item:hover,
+.sidenav-subitem:hover {
+  background: rgba(255, 255, 255, .08);
+  color: var(--text-strong);
+}
+html.light .sidenav-item:hover,
+html.light .sidenav-subitem:hover {
+  background: rgba(0, 0, 0, .05);
+  color: #0f172a;
+}
+
+.sidenav-ico {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--text-strong);
+}
+.sidenav-ico .ico-svg,
+.sidenav-subitem .ico-svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.85;
+  flex-shrink: 0;
+}
+.sidenav-subitem .ico-svg {
+  width: 19px;
+  height: 19px;
+  color: var(--muted);
+}
+
+.sidenav-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Active state ala YouTube (Pill abu/putih transparan halus + teks bold) */
+.sidenav-item.active,
+.sidenav-subitem.active {
+  background: rgba(255, 255, 255, .12);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+.sidenav-item.active:hover,
+.sidenav-subitem.active:hover {
+  background: rgba(255, 255, 255, .17);
+}
+.sidenav-item.active .sidenav-ico .ico-svg,
+.sidenav-subitem.active .ico-svg {
+  stroke-width: 2.3;
+  color: var(--accent);
+}
+html.light .sidenav-item.active,
+html.light .sidenav-subitem.active {
+  background: rgba(0, 0, 0, .07);
+  color: #0f0f0f;
+}
+html.light .sidenav-item.active:hover,
+html.light .sidenav-subitem.active:hover {
+  background: rgba(0, 0, 0, .11);
+}
+
+/* Garis Pemisah Seksi ala YouTube */
+.sidenav-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, .1);
+  margin: 12px 0;
+}
+html.light .sidenav-divider {
+  border-top-color: rgba(0, 0, 0, .1);
+}
+
+/* Judul Seksi Sekunder ("Analisis Sarpras >") */
+.sidenav-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+.sidenav-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Footer Sidenav ala YouTube */
+.sidenav-footer {
+  padding: 4px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sidenav-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .04);
+}
+html.light .sidenav-user {
+  background: rgba(0, 0, 0, .04);
+}
+.sidenav-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.sidenav-copy {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted-2);
+  font-weight: 500;
+}
+
+/* ========== MODE MINI-GUIDE YOUTUBE (COLLAPSED DESKTOP: 72px) ========== */
+.sidenav.collapsed {
+  width: 72px;
+}
+.sidenav.collapsed .sidenav-scroll {
+  padding: 4px 4px 12px;
+}
+.sidenav.collapsed .sidenav-divider,
+.sidenav.collapsed .sidenav-secondary,
+.sidenav.collapsed .sidenav-footer {
+  display: none;
+}
+.sidenav.collapsed .sidenav-item {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  width: 64px;
+  height: auto;
+  padding: 16px 0 14px;
+  margin: 0 auto;
+  border-radius: 10px;
+}
+.sidenav.collapsed .sidenav-name {
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 400;
+  text-align: center;
+  max-width: 60px;
+}
+.sidenav.collapsed .sidenav-item.active .sidenav-name {
+  font-weight: 600;
+}
+.sidenav.collapsed .sidenav-item.active {
+  background: transparent;
+}
+.sidenav.collapsed .sidenav-item:hover {
+  background: rgba(255, 255, 255, .08);
+}
+html.light .sidenav.collapsed .sidenav-item:hover {
+  background: rgba(0, 0, 0, .05);
+}
+
+/* Backdrop Drawer Mobile */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  z-index: 1035;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease;
+}
+.sidebar-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---------- Chip Bar Horizontal Gaya YouTube ---------- */
+.yt-chips-bar {
+  position: sticky;
+  top: 56px;
+  z-index: 990;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+  padding: 10px 0;
+  transition: background-color .2s;
+}
+html.light .yt-chips-bar {
+  background: #ffffff;
+  border-bottom-color: #e2e8f0;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; }
+.brand-logo {
+  width: 34px; height: 34px; border-radius: 8px; background: #fff; padding: 3px; flex-shrink: 0;
+  display: grid; place-items: center; border: 1px solid rgba(34, 211, 238, .4);
+  transition: transform .2s;
+}
+html.light .brand-logo { border-color: #cbd5e1; }
+.brand:hover .brand-logo { transform: scale(1.04); }
 .brand-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.brand-title { font-size: 18px; font-weight: 700; color: var(--text-strong); letter-spacing: -.02em; line-height: 1.2; white-space: nowrap; }
+.brand-title { font-size: 17px; font-weight: 800; color: var(--text-strong); letter-spacing: -.03em; line-height: 1.1; white-space: nowrap; }
 .brand-title span { color: var(--accent); font-weight: 800; }
-.brand-sub { font-size: 11px; color: var(--muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-sub { font-size: 10.5px; color: var(--muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .topnav-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .src-badge {
@@ -142,51 +456,53 @@ html.light .brand-logo { border-color: #000; box-shadow: 0 4px 10px rgba(148, 16
 .src-badge.real { background: var(--emerald-bg); color: var(--emerald-t); border-color: var(--emerald-bd); }
 .btn-export {
   display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
-  padding: 7px 11px; border-radius: 8px; white-space: nowrap;
-  background: rgba(2, 44, 34, .8); color: #a7f3d0; border: 1px solid rgba(4, 120, 87, .6);
-  box-shadow: var(--shadow); transition: transform .15s, background .15s;
+  padding: 7px 12px; border-radius: 999px; white-space: nowrap;
+  background: rgba(255, 255, 255, .08); color: var(--text-strong); border: 1px solid rgba(255, 255, 255, .12);
+  transition: background .15s;
 }
 .btn-export .ico-svg { color: #34d399; }
-.btn-export:hover { background: #064e3b; transform: scale(1.02); }
-html.light .btn-export { background: #ecfdf5; color: #065f46; border-color: #34d399; }
-html.light .btn-export:hover { background: #d1fae5; }
+.btn-export:hover { background: rgba(255, 255, 255, .14); }
+html.light .btn-export { background: rgba(0, 0, 0, .05); color: #0f172a; border-color: rgba(0, 0, 0, .1); }
+html.light .btn-export:hover { background: rgba(0, 0, 0, .09); }
 html.light .btn-export .ico-svg { color: #059669; }
 
 .icon-btn {
-  display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; cursor: pointer;
-  background: rgba(30, 41, 59, .9); border: 1px solid #334155; color: var(--text-2);
-  transition: transform .15s, background .15s; flex-shrink: 0;
+  display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  background: transparent; border: none; color: var(--text-2);
+  transition: background .15s; flex-shrink: 0;
 }
-.icon-btn:hover { background: #334155; transform: scale(1.05); }
-html.light .icon-btn { background: #f1f5f9; border-color: #cbd5e1; color: #1e293b; }
-html.light .icon-btn:hover { background: #e2e8f0; }
+.icon-btn:hover { background: rgba(255, 255, 255, .1); color: var(--text-strong); }
+html.light .icon-btn { color: #1e293b; }
+html.light .icon-btn:hover { background: rgba(0, 0, 0, .06); }
 .theme-toggle .i-sun { color: #fbbf24; animation: pulse-subtle 3s infinite; }
 .theme-toggle .i-moon { color: #0ea5e9; display: none; }
 html.light .theme-toggle .i-sun { display: none; }
 html.light .theme-toggle .i-moon { display: block; }
 @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
 
-.user-zone { display: flex; align-items: center; gap: 6px; padding-left: 8px; border-left: 1px solid rgba(51, 65, 85, .8); }
-html.light .user-zone { border-left-color: #cbd5e1; }
+.user-zone { display: flex; align-items: center; gap: 6px; padding-left: 6px; }
 
-/* Tabs navigasi (desktop) */
-.tabs { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+/* Filter Chips navigasi ala YouTube */
+.tabs { display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
 .tabs .nav-link {
-  position: relative; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
-  padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none;
-  color: var(--text-2); transition: all .2s;
+  position: relative; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 500; text-decoration: none;
+  background: rgba(255, 255, 255, .08); color: var(--text); transition: background-color .15s, color .15s;
 }
-.tabs .nav-link .ico-svg { color: var(--muted); }
-.tabs .nav-link:hover { color: var(--text-strong); background: rgba(30, 41, 59, .7); }
-html.light .tabs .nav-link:hover { background: #e2e8f0; }
+.tabs .nav-link .ico-svg { width: 15px; height: 15px; color: var(--muted); }
+.tabs .nav-link:hover { background: rgba(255, 255, 255, .14); color: var(--text-strong); }
+html.light .tabs .nav-link { background: rgba(0, 0, 0, .05); color: #0f0f0f; }
+html.light .tabs .nav-link:hover { background: rgba(0, 0, 0, .09); }
 .tabs .nav-link.active {
-  background: linear-gradient(90deg, #0891b2, #2563eb); color: #fff;
-  box-shadow: 0 4px 6px -1px rgba(22, 78, 99, .5);
+  background: #f1f5f9; color: #0f172a; font-weight: 600;
 }
-.tabs .nav-link.active .ico-svg { color: #fff; }
-.tabs .nav-link.active::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: 0; height: 2px; border-radius: 999px; background: #67e8f9; }
-html.light .tabs .nav-link.active { background: #0284c7; box-shadow: none; }
-.tab-badge { padding: 0 6px; font-size: 10px; font-weight: 700; border-radius: 999px; background: #f43f5e; color: #fff; animation: pulse-subtle 2s infinite; }
+.tabs .nav-link.active .ico-svg { color: #0f172a; }
+html.light .tabs .nav-link.active {
+  background: #0f0f0f; color: #ffffff;
+}
+html.light .tabs .nav-link.active .ico-svg { color: #ffffff; }
+.tab-badge { padding: 0 6px; font-size: 10px; font-weight: 700; border-radius: 999px; background: #f43f5e; color: #fff; }
 
 /* ---------- Role banner ---------- */
 .role-banner {
@@ -278,7 +594,10 @@ html.light .btn-ghost:hover { background: #e2e8f0; color: #0f172a; border-color:
 
 .grid { display: grid; gap: 24px; }
 .g-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .g-3-2 { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.mod-summary-card { display: flex; flex-direction: column; justify-content: space-between; }
+.mod-summary-card:hover { border-color: rgba(6, 182, 212, .5); }
 
 /* ---------- Early warning alert ---------- */
 .alert-rb {
@@ -450,7 +769,7 @@ html.light .mobile-nav { background: #fff; border-top-color: #cbd5e1; box-shadow
 /* ---------- Responsive ---------- */
 @media (max-width: 1280px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 1100px) {
-  .g-2, .g-3-2 { grid-template-columns: minmax(0, 1fr); }
+  .g-2, .g-3, .g-3-2 { grid-template-columns: minmax(0, 1fr); }
   .brand-sub { max-width: 280px; }
 }
 @media (max-width: 900px) {
@@ -459,11 +778,48 @@ html.light .mobile-nav { background: #fff; border-top-color: #cbd5e1; box-shadow
 @media (max-width: 767px) {
   html, body { overflow-x: hidden; }
   .container { padding-left: 12px; padding-right: 12px; }
+  .sidenav,
+  .sidenav.collapsed {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    width: 240px !important;
+    z-index: 1040;
+    transform: translateX(-100%);
+    box-shadow: 8px 0 32px rgba(0, 0, 0, .5);
+  }
+  .sidenav.open {
+    transform: translateX(0);
+  }
+  .sidenav-drawer-head {
+    display: flex;
+  }
+  .sidenav.collapsed .sidenav-scroll { padding: 12px 12px 16px; }
+  .sidenav.collapsed .sidenav-divider,
+  .sidenav.collapsed .sidenav-secondary,
+  .sidenav.collapsed .sidenav-footer { display: flex; }
+  .sidenav.collapsed .sidenav-divider { display: block; }
+  .sidenav.collapsed .sidenav-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 24px;
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+  }
+  .sidenav.collapsed .sidenav-name {
+    font-size: 14px;
+    max-width: none;
+    text-align: left;
+  }
   .topnav-row { height: 56px; }
-  .brand-logo { width: 36px; height: 36px; border-radius: 10px; }
-  .brand-title { font-size: 14px; }
-  .brand-sub, .tabs, .btn-export, .print-btn { display: none; }
+  .brand-logo { width: 32px; height: 32px; border-radius: 8px; }
+  .brand-title { font-size: 15px; }
+  .brand-sub, .yt-chips-bar, .btn-export, .print-btn { display: none !important; }
   .mobile-nav { display: block; }
+  .mobile-nav.hidden-mod { display: none !important; }
   .main { padding-top: 16px; padding-bottom: 96px; gap: 16px; }
   .page { gap: 16px; }
   .grid { gap: 16px; }
@@ -481,7 +837,7 @@ html.light .mobile-nav { background: #fff; border-top-color: #cbd5e1; box-shadow
 
 /* ---------- Print ---------- */
 @media print {
-  .topnav, .mobile-nav, .filters, .pager, .btn, .drop, .hero-side, .alert-rb .btn-rose { display: none !important; }
+  .sidenav, .sidebar-backdrop, .topnav, .yt-chips-bar, .mobile-nav, .filters, .pager, .btn, .drop, .hero-side, .alert-rb .btn-rose { display: none !important; }
   body { background: #fff; }
   .main { padding: 0; }
   .page { display: none !important; }
