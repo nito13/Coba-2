@@ -1259,7 +1259,7 @@
           renderAuthState();
           fillFilters();
           refresh();
-          activate(PAGES[location.hash.slice(1)] ? location.hash.slice(1) : 'ringkasan');
+          activate(PAGES[location.hash.slice(1)] ? location.hash.slice(1) : 'beranda');
           toast(`Selamat datang, ${user.name}!`);
           loginForm.reset();
         } catch (err) {
@@ -1483,6 +1483,17 @@
         $('sidebar').classList.add('collapsed');
       }
     } catch (e) {}
+    document.querySelectorAll('.brand').forEach(brand => {
+      brand.addEventListener('click', e => {
+        e.preventDefault();
+        if (location.hash.slice(1) !== 'beranda') {
+          location.hash = 'beranda';
+        } else {
+          show('beranda');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
     document.querySelectorAll('.sidenav-item').forEach(item => {
       item.addEventListener('click', e => {
         const mod = item.dataset.module;
