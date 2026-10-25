@@ -4,8 +4,8 @@
   "private": true,
   "description": "SIANSAR KP — Sistem Informasi Analisis Sarana Prasarana Satuan Pendidikan KKP",
   "scripts": {
-    "dev": "node dev-server.js",
-    "start": "node dev-server.js",
-    "build:data": "node build-data.js"
+    "dev": "node backend/dev-server.js",
+    "start": "node backend/dev-server.js",
+    "build:data": "node Services/build-data.js"
   }
 }

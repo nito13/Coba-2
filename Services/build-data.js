@@ -1,6 +1,10 @@
 const fs = require('fs');
-const XLSX = require('./xlsx.full.min.js');
-const wb = XLSX.read(fs.readFileSync('Data Contoh.xlsx'), { type: 'buffer' });
+const path = require('path');
+const XLSX = require(path.join(__dirname, 'xlsx.full.min.js'));
+const ROOT = path.resolve(__dirname, '..');
+const EXCEL_PATH = path.join(ROOT, 'database', 'Data Contoh.xlsx');
+const OUT_PATH = path.join(ROOT, 'database', 'data-excel.js');
+const wb = XLSX.read(fs.readFileSync(EXCEL_PATH), { type: 'buffer' });
 
 const CAMPUS_MAP = {
   'jakarta': { kode: 'PAUP', nama: 'Politeknik AUP Jakarta', jenis: 'Politeknik', provinsi: 'DKI Jakarta', kota: 'Jakarta Selatan', lat: -6.2836, lng: 106.8395, taruna: 1650, berdiri: 1985, mutu: 0.84 },
@@ -215,5 +219,5 @@ const outContent = `/**
 })(typeof window !== 'undefined' ? window : global);
 `;
 
-fs.writeFileSync('assets/js/data-excel.js', outContent, 'utf8');
-console.log('Successfully wrote assets/js/data-excel.js (' + (fs.statSync('assets/js/data-excel.js').size / 1024).toFixed(1) + ' KB)');
+fs.writeFileSync(OUT_PATH, outContent, 'utf8');
+console.log('Successfully wrote database/data-excel.js (' + (fs.statSync(OUT_PATH).size / 1024).toFixed(1) + ' KB)');
