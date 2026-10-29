@@ -25,7 +25,7 @@
   const SIM_RE = /simulator\s*navigasi|full\s*mission|bridge\s*simulator|workshop\s*simulator|ecdis|radar/i;
   const LAYAK = r => r.kondisi === 'Baik' || r.kondisi === 'Rusak Ringan';
 
-  const LS = { rows: 'siansar_rows_v1', src: 'siansar_src_v1', taruna: 'siansar_taruna_v1' };
+  const LS = { rows: 'siansar_rows_v1', src: 'siansar_src_v1', taruna: 'siansar_taruna_v1', dosen: 'siansar_dosen_v1' };
 
   // ---------- State ----------
   let ALL = [];
@@ -35,7 +35,10 @@
   const F = { jenis: '', prov: '', satdik: '', kat: '' };
   const charts = {};
   let map = null, mapLayer = null;
-  const tableState = { profil: { key: 'iks', dir: 1 }, data: { key: null, dir: 1, page: 1, q: '' } };
+  let DOSEN_LIST = [];
+  const F_DOSEN = { satdik: '', prodi: '', jafung: '', q: '' };
+  const JAFUNG_LIST = ['Tenaga Pengajar', 'Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'];
+  const tableState = { profil: { key: 'iks', dir: 1 }, data: { key: null, dir: 1, page: 1, q: '' }, dosen: { key: null, dir: 1, page: 1 } };
 
   // ---------- Helpers ----------
   const $ = id => document.getElementById(id);
@@ -268,7 +271,7 @@
   // ---------- Pages ----------
   const PAGES = {
     beranda: ['Beranda — Ringkasan 3 Modul', 'Sintesis terpadu kondisi Sarana Prasarana (Sarpras), Data Pokok Pendidikan (Dapodik), dan Kemitraan Industri (Mitra) BPPSDM KP'],
-    ringkasan: ['Ringkasan Eksekutif', 'Gambaran umum kondisi sarana prasarana satuan pendidikan lingkup KKP'],
+    ringkasan: ['Ringkasan Sarana & Prasarana', 'Gambaran umum kondisi sarana prasarana satuan pendidikan lingkup KKP'],
     kondisi: ['Analisis Program Studi', 'Distribusi kondisi, usia aset sarpras per program studi, dan tren perolehan aset'],
     satdik: ['Per Satuan Pendidikan', 'Perbandingan kondisi sarpras antar Politeknik dan Akademi Komunitas'],
     kecukupan: ['Rasio & Kecukupan', 'Ketersediaan sarpras layak pakai terhadap jumlah peserta didik'],
@@ -277,6 +280,7 @@
     data: ['Data & Impor', 'Kelola, impor, dan ekspor data sarana prasarana'],
     dapodik: ['Ringkasan Dapodik', 'Data pokok peserta didik (taruna/siswa), tenaga pendidik, dan program studi lingkup BPPSDM KP'],
     'dapo-pd': ['Peserta Didik', 'Jumlah, jenis kelamin, dan sebaran tingkat taruna/siswa aktif per satuan pendidikan'],
+    'dapo-dosen': ['Data Dosen', 'Data pokok dosen satuan pendidikan lingkup BPPSDM KP (NIDN, kualifikasi pendidikan, jabatan fungsional, dan sertifikasi)'],
     'dapo-ptk': ['Pendidik & Tenaga Kependidikan', 'Komposisi dosen/guru, instruktur praktik, tenaga kependidikan, dan rasio terhadap peserta didik'],
     'dapo-prodi': ['Rombel & Program Studi', 'Program studi/kompetensi keahlian, satdik penyelenggara, dan estimasi rombongan belajar'],
     'dapo-satdik': ['Rekap Satuan Pendidikan', 'Rekapitulasi data pokok pendidikan per satuan pendidikan KKP'],
@@ -289,7 +293,7 @@
   const MODULES = {
     beranda: ['beranda'],
     sarpras: ['ringkasan', 'kondisi', 'satdik', 'kecukupan', 'prioritas', 'peta', 'data'],
-    dapodik: ['dapodik', 'dapo-pd', 'dapo-ptk', 'dapo-prodi', 'dapo-satdik'],
+    dapodik: ['dapodik', 'dapo-pd', 'dapo-dosen', 'dapo-ptk', 'dapo-prodi', 'dapo-satdik'],
     mitra: ['mitra', 'mitra-dir', 'mitra-mou', 'mitra-magang', 'mitra-serapan']
   };
   const moduleOf = p => Object.keys(MODULES).find(k => MODULES[k].includes(p)) || 'beranda';
@@ -624,6 +628,357 @@
         `<td class="small">${s.tingkat.map((t, i) => `Tk ${ROMAN[i]}: <b>${fmtNum(t)}</b>`).join(' · ')}</td><td class="num">${fmtNum(s.rombel)}</td></tr>`).join('') ||
         '<tr><td colspan="9" class="muted">Tidak ada data.</td></tr>') + '</tbody>';
   };
+
+  // ---------- Dapodik: Data Dosen (Tanpa Data Dummy) ----------
+  function loadDosen() {
+    try {
+      const saved = localStorage.getItem(LS.dosen);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          DOSEN_LIST = parsed;
+          return;
+        }
+      }
+    } catch (e) {}
+    DOSEN_LIST = (window.SARPRAS && Array.isArray(window.SARPRAS.DOSEN)) ? window.SARPRAS.DOSEN.slice() : [];
+  }
+
+  function saveDosen() {
+    try { localStorage.setItem(LS.dosen, JSON.stringify(DOSEN_LIST)); }
+    catch (e) { toast('Gagal menyimpan data dosen ke penyimpanan lokal.'); }
+  }
+
+  function dosenSatdikOptions() {
+    const base = Object.values(META).filter(m => /politeknik|akademi/i.test(m.jenis) || ALL.some(r => r.kode === m.kode));
+    const list = base.length ? base : SATDIK;
+    return [...list].sort((a, b) => a.nama.localeCompare(b.nama));
+  }
+
+  function dosenProdiOptions() {
+    const set = new Set([...KAT_ORDER, ...ALL.map(r => r.kategori).filter(Boolean), ...DOSEN_LIST.map(d => d.prodi).filter(Boolean)]);
+    return [...set].sort((a, b) => katIdx(a) - katIdx(b) || String(a).localeCompare(b));
+  }
+
+  function fillDosenFilters() {
+    const sats = dosenSatdikOptions().map(m => [m.kode, m.nama]);
+    const prodis = dosenProdiOptions().map(p => [p, p]);
+    const jafungs = JAFUNG_LIST.map(j => [j, j]);
+    if ($('fDosenSatdik')) fillSelect($('fDosenSatdik'), sats, 'Semua satuan pendidikan', F_DOSEN.satdik);
+    if ($('fDosenProdi')) fillSelect($('fDosenProdi'), prodis, 'Semua program studi', F_DOSEN.prodi);
+    if ($('fDosenJafung')) fillSelect($('fDosenJafung'), jafungs, 'Semua jabatan fungsional', F_DOSEN.jafung);
+
+    const user = window.SARPRAS_AUTH ? window.SARPRAS_AUTH.getUser() : null;
+    if (user && user.role === 'operator_satdik' && user.accessibleSatdik && user.accessibleSatdik !== 'ALL') {
+      F_DOSEN.satdik = user.accessibleSatdik;
+      if ($('fDosenSatdik')) {
+        $('fDosenSatdik').value = user.accessibleSatdik;
+        $('fDosenSatdik').disabled = true;
+      }
+    } else if ($('fDosenSatdik')) {
+      $('fDosenSatdik').disabled = false;
+    }
+  }
+
+  function filteredDosen() {
+    const q = (F_DOSEN.q || '').toLowerCase().trim();
+    return DOSEN_LIST.filter(d =>
+      (!F_DOSEN.satdik || d.kode === F_DOSEN.satdik) &&
+      (!F_DOSEN.prodi || d.prodi === F_DOSEN.prodi) &&
+      (!F_DOSEN.jafung || d.jafung === F_DOSEN.jafung) &&
+      (!q || `${d.nama} ${d.nidn} ${d.nip} ${d.prodi} ${d.satdik} ${d.jafung} ${d.pendidikan}`.toLowerCase().includes(q))
+    );
+  }
+
+  RENDER['dapo-dosen'] = function () {
+    fillDosenFilters();
+    const list = filteredDosen();
+    const total = list.length;
+    const s3 = list.filter(d => /^s3|doktor/i.test(d.pendidikan)).length;
+    const s2 = list.filter(d => /^s2|magister/i.test(d.pendidikan)).length;
+    const lektorPlus = list.filter(d => /lektor|guru besar|profesor/i.test(d.jafung)).length;
+    const serdos = list.filter(d => d.sertifikasi === 'Tersertifikasi').length;
+    const nSatdik = new Set(list.map(d => d.kode).filter(Boolean)).size;
+
+    if ($('dosenTotal')) $('dosenTotal').textContent = fmtNum(total);
+    if ($('dosenTotalF')) $('dosenTotalF').textContent = total ? `${fmtNum(nSatdik)} Satuan Pendidikan` : 'Belum ada data dosen';
+    if ($('dosenS3')) $('dosenS3').textContent = fmtNum(s3);
+    if ($('dosenS3F')) $('dosenS3F').textContent = total ? `S2: ${fmtNum(s2)} · S3: ${fmtNum(s3)} (${pct(s3 / total)})` : 'S2: 0 · S3: 0';
+    if ($('dosenJafung')) $('dosenJafung').textContent = fmtNum(lektorPlus);
+    if ($('dosenJafungF')) $('dosenJafungF').textContent = total ? `${pct(lektorPlus / total)} dari total dosen` : 'Lektor, Lektor Kepala & Guru Besar';
+    if ($('dosenSerdos')) $('dosenSerdos').textContent = fmtNum(serdos);
+    if ($('dosenSerdosF')) $('dosenSerdosF').textContent = total ? `${pct(serdos / total)} telah tersertifikasi` : 'Dosen Bersertifikat Pendidik';
+    if ($('dosenRowCount')) $('dosenRowCount').textContent = `(${fmtNum(total)} data)`;
+    if ($('btnClearDosen')) $('btnClearDosen').style.display = DOSEN_LIST.length > 0 ? '' : 'none';
+
+    // Grafik 1: Sebaran Dosen per Satdik
+    if (total === 0) {
+      if (charts.cDosenSatdik) { charts.cDosenSatdik.destroy(); delete charts.cDosenSatdik; }
+      if ($('cDosenSatdik')) $('cDosenSatdik').style.display = 'none';
+      if ($('emptyDosenSatdik')) $('emptyDosenSatdik').style.display = 'flex';
+
+      if (charts.cDosenJafung) { charts.cDosenJafung.destroy(); delete charts.cDosenJafung; }
+      if ($('cDosenJafung')) $('cDosenJafung').style.display = 'none';
+      if ($('emptyDosenJafung')) $('emptyDosenJafung').style.display = 'flex';
+    } else {
+      if ($('emptyDosenSatdik')) $('emptyDosenSatdik').style.display = 'none';
+      if ($('cDosenSatdik')) $('cDosenSatdik').style.display = 'block';
+      const bySat = [...groupBy(list, d => d.kode || d.satdik)]
+        .map(([k, arr]) => [short(nameOf(k) || arr[0].satdik || k), arr.length])
+        .sort((a, b) => b[1] - a[1]);
+      chart('cDosenSatdik', {
+        type: 'bar',
+        data: { labels: bySat.map(x => x[0]), datasets: [{ label: 'Jumlah Dosen', data: bySat.map(x => x[1]), backgroundColor: '#06b6d4', borderRadius: 4 }] },
+        options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { grid: { display: false } }, x: { beginAtZero: true, ticks: { precision: 0 } } } }
+      });
+
+      if ($('emptyDosenJafung')) $('emptyDosenJafung').style.display = 'none';
+      if ($('cDosenJafung')) $('cDosenJafung').style.display = 'block';
+      const byJf = [...groupBy(list, d => d.jafung || 'Tenaga Pengajar')].map(([j, arr]) => [j, arr.length]);
+      chart('cDosenJafung', {
+        type: 'doughnut',
+        data: { labels: byJf.map(x => x[0]), datasets: [{ data: byJf.map(x => x[1]), backgroundColor: PALETTE, borderWidth: 2, borderColor: isDark() ? '#1e293b' : '#fff' }] },
+        options: { cutout: '62%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmtNum(c.raw)} (${pct(c.raw / total)})` } } } }
+      });
+    }
+
+    // Tabel Data Dosen
+    const tbl = $('tDapoDosen');
+    const pg = $('dosenPager');
+    const cols = [
+      { key: '_no', label: '#', num: 1 },
+      { key: 'nama', label: 'Nama Dosen', fmt: v => `<b>${esc(v)}</b>` },
+      { key: 'nidn', label: 'NIDN / NUPTK', fmt: v => `<span class="mono small">${esc(v || '-')}</span>` },
+      { key: 'nip', label: 'NIP', fmt: v => `<span class="mono small">${esc(v || '-')}</span>` },
+      { key: 'jk', label: 'L/P' },
+      { key: 'pendidikan', label: 'Pendidikan', fmt: v => `<span class="badge ${/^s3|doktor/i.test(v) ? 'b-baik' : 'b-rr'}">${esc(v || '-')}</span>` },
+      { key: 'jafung', label: 'Jabatan Fungsional' },
+      { key: 'prodi', label: 'Program Studi' },
+      { key: 'satdik', label: 'Satuan Pendidikan', fmt: (v, r) => esc(short(v || nameOf(r.kode))) },
+      { key: 'sertifikasi', label: 'Sertifikasi', fmt: v => `<span class="badge ${v === 'Tersertifikasi' ? 'b-baik' : 'b-rs'}">${esc(v || 'Belum')}</span>` },
+      { key: 'status', label: 'Status', fmt: v => `<span class="badge ${v === 'Aktif' ? 'b-ok' : 'b-rr'}">${esc(v || 'Aktif')}</span>` },
+      { key: '_aksi', label: 'Aksi', nosort: 1 }
+    ];
+
+    if (total === 0) {
+      tbl.innerHTML = '<thead><tr>' + cols.map(c => `<th class="${c.num ? 'num' : ''}">${c.label}</th>`).join('') + '</tr></thead>' +
+        `<tbody><tr><td colspan="${cols.length}" class="empty-cell"><div class="empty-box">` +
+        `<svg class="ico-svg"><use href="#i-user-check"/></svg>` +
+        `<b>Belum Ada Data Dosen</b>` +
+        `<span>Data dosen saat ini masih kosong. Klik tombol <b>Tambah Dosen</b> atau <b>Impor Excel/CSV</b> untuk menambahkan data.</span>` +
+        `</div></td></tr></tbody>`;
+      if (pg) pg.innerHTML = '';
+      return;
+    }
+
+    const st = tableState.dosen;
+    let sorted = list;
+    if (st.key && st.key !== '_no' && st.key !== '_aksi') {
+      sorted = [...list].sort((a, b) => String(a[st.key] ?? '').localeCompare(String(b[st.key] ?? '')) * st.dir);
+    }
+    const pageSize = 25;
+    const pages = Math.max(1, Math.ceil(sorted.length / pageSize));
+    st.page = Math.min(st.page, pages);
+    const startIdx = (st.page - 1) * pageSize;
+    const slice = sorted.slice(startIdx, startIdx + pageSize);
+
+    tbl.innerHTML = '<thead><tr>' + cols.map(c =>
+      `<th class="${c.num ? 'num' : ''}" ${c.nosort ? '' : `data-k="${c.key}"`}>${c.label}${!c.nosort && st.key === c.key ? (st.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`
+    ).join('') + '</tr></thead><tbody>' +
+      slice.map((r, idx) => `<tr>` +
+        `<td class="num">${startIdx + idx + 1}</td>` +
+        `<td><b>${esc(r.nama)}</b></td>` +
+        `<td class="mono small">${esc(r.nidn || '-')}</td>` +
+        `<td class="mono small">${esc(r.nip || '-')}</td>` +
+        `<td>${esc(r.jk || '-')}</td>` +
+        `<td><span class="badge ${/^s3|doktor/i.test(r.pendidikan) ? 'b-baik' : 'b-rr'}">${esc(r.pendidikan || '-')}</span></td>` +
+        `<td>${esc(r.jafung || '-')}</td>` +
+        `<td>${esc(r.prodi || '-')}</td>` +
+        `<td>${esc(short(r.satdik || nameOf(r.kode)))}</td>` +
+        `<td><span class="badge ${r.sertifikasi === 'Tersertifikasi' ? 'b-baik' : 'b-rs'}">${esc(r.sertifikasi || 'Belum')}</span></td>` +
+        `<td><span class="badge ${r.status === 'Aktif' ? 'b-ok' : 'b-rr'}">${esc(r.status || 'Aktif')}</span></td>` +
+        `<td><div class="btn-row" style="gap:4px;flex-wrap:nowrap">` +
+          `<button type="button" class="btn btn-ghost btn-sm" data-edit-dosen="${esc(r.id)}">Edit</button>` +
+          `<button type="button" class="btn btn-danger btn-sm" data-del-dosen="${esc(r.id)}">Hapus</button>` +
+        `</div></td>` +
+      `</tr>`).join('') + '</tbody>';
+
+    tbl.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => {
+      const k = th.dataset.k;
+      if (k === '_no') return;
+      st.dir = st.key === k ? -st.dir : 1;
+      st.key = k;
+      RENDER['dapo-dosen']();
+    });
+    tbl.querySelectorAll('[data-edit-dosen]').forEach(btn => btn.onclick = () => openDosenModal(btn.dataset.editDosen));
+    tbl.querySelectorAll('[data-del-dosen]').forEach(btn => btn.onclick = () => {
+      const id = String(btn.dataset.delDosen);
+      DOSEN_LIST = DOSEN_LIST.filter(d => String(d.id) !== id);
+      saveDosen();
+      RENDER['dapo-dosen']();
+      toast('Data dosen dihapus.');
+    });
+
+    if (pg) {
+      const btn = (p, label, dis, on) => `<button data-p="${p}" ${dis ? 'disabled' : ''} class="${on ? 'on' : ''}">${label}</button>`;
+      let h = btn(st.page - 1, '‹', st.page === 1);
+      for (let p = 1; p <= pages; p++) {
+        if (p === 1 || p === pages || Math.abs(p - st.page) <= 2) h += btn(p, p, false, p === st.page);
+        else if (Math.abs(p - st.page) === 3) h += '<span class="muted">…</span>';
+      }
+      pg.innerHTML = h + btn(st.page + 1, '›', st.page === pages) + `<span class="muted small">hal. ${st.page}/${pages}</span>`;
+      pg.querySelectorAll('button').forEach(b => b.onclick = () => { st.page = +b.dataset.p; RENDER['dapo-dosen'](); });
+    }
+  };
+
+  function openDosenModal(editId) {
+    const sats = dosenSatdikOptions();
+    const prodis = dosenProdiOptions();
+    if ($('inpDosenSatdik')) {
+      $('inpDosenSatdik').innerHTML = sats.map(m => `<option value="${esc(m.kode)}">${esc(m.nama)}</option>`).join('');
+    }
+    if ($('inpDosenProdi')) {
+      $('inpDosenProdi').innerHTML = prodis.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+    }
+    const form = $('formDosen');
+    if (form) form.reset();
+
+    const existing = editId != null ? DOSEN_LIST.find(d => String(d.id) === String(editId)) : null;
+    if ($('modalDosenTitle')) $('modalDosenTitle').textContent = existing ? 'Edit Data Dosen' : 'Tambah Data Dosen';
+    if ($('dosenId')) $('dosenId').value = existing ? existing.id : '';
+
+    if (existing) {
+      if ($('inpDosenNama')) $('inpDosenNama').value = existing.nama || '';
+      if ($('inpDosenNidn')) $('inpDosenNidn').value = existing.nidn || '';
+      if ($('inpDosenNip')) $('inpDosenNip').value = existing.nip || '';
+      if ($('inpDosenSatdik') && existing.kode) $('inpDosenSatdik').value = existing.kode;
+      if ($('inpDosenProdi') && existing.prodi) $('inpDosenProdi').value = existing.prodi;
+      if ($('inpDosenJk')) $('inpDosenJk').value = existing.jk || 'L';
+      if ($('inpDosenPendidikan')) $('inpDosenPendidikan').value = existing.pendidikan || 'S2';
+      if ($('inpDosenJafung')) $('inpDosenJafung').value = existing.jafung || 'Asisten Ahli';
+      if ($('inpDosenSerdos')) $('inpDosenSerdos').value = existing.sertifikasi || 'Belum';
+      if ($('inpDosenStatus')) $('inpDosenStatus').value = existing.status || 'Aktif';
+    } else if (F_DOSEN.satdik && $('inpDosenSatdik')) {
+      $('inpDosenSatdik').value = F_DOSEN.satdik;
+    }
+    openModal('modalDosen');
+  }
+
+  const DOSEN_COLS = ['kode', 'satdik', 'prodi', 'nama', 'nidn', 'nip', 'jk', 'pendidikan', 'jafung', 'sertifikasi', 'status'];
+  const DOSEN_ALIAS = {
+    kode: ['kode', 'kode satdik', 'kode kampus'],
+    satdik: ['satdik', 'satuan pendidikan', 'nama satdik', 'kampus', 'perguruan tinggi'],
+    prodi: ['prodi', 'program studi', 'homebase', 'jurusan'],
+    nama: ['nama', 'nama dosen', 'nama lengkap'],
+    nidn: ['nidn', 'nuptk', 'nidn nuptk', 'nidk'],
+    nip: ['nip'],
+    jk: ['jk', 'jenis kelamin', 'lp', 'l p', 'gender'],
+    pendidikan: ['pendidikan', 'pendidikan terakhir', 'jenjang', 'kualifikasi'],
+    jafung: ['jafung', 'jabatan fungsional', 'jabatan akademik', 'jabatan'],
+    sertifikasi: ['sertifikasi', 'serdos', 'status sertifikasi'],
+    status: ['status', 'status keaktifan', 'keaktifan']
+  };
+
+  function handleDosenFile(file) {
+    const msg = $('dosenImportMsg');
+    if (msg) { msg.style.display = 'block'; msg.innerHTML = 'Memproses <b>' + esc(file.name) + '</b>…'; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+        if (!json.length) {
+          if (msg) msg.innerHTML = '<span class="down">File kosong: tidak ada baris data dosen untuk diimpor.</span>';
+          return;
+        }
+        const map = {};
+        Object.keys(json[0]).forEach(h => {
+          const n = normKey(h);
+          for (const [k, al] of Object.entries(DOSEN_ALIAS)) if (!map[k] && al.includes(n)) map[k] = h;
+        });
+        if (!map.nama) {
+          if (msg) msg.innerHTML = '<span class="down">Gagal: kolom wajib <b>nama</b> (Nama Dosen) tidak ditemukan.</span>';
+          return;
+        }
+        const byName = Object.fromEntries(SATDIK.map(s => [s.nama.toLowerCase(), s]));
+        let added = 0, skipped = 0;
+        let nextId = DOSEN_LIST.reduce((m, d) => Math.max(m, +d.id || 0), 0) + 1;
+        for (const o of json) {
+          const g = k => map[k] ? String(o[map[k]] ?? '').trim() : '';
+          const nama = g('nama');
+          if (!nama) { skipped++; continue; }
+          let kode = g('kode').toUpperCase();
+          let satdik = g('satdik');
+          const ref = SATDIK.find(s => s.kode === kode) || byName[satdik.toLowerCase()] || (satdik ? SATDIK.find(s => s.nama.toLowerCase().includes(satdik.toLowerCase())) : null);
+          if (ref) { kode = ref.kode; satdik = ref.nama; }
+          else if (!satdik && kode) { satdik = nameOf(kode); }
+          const rawJk = g('jk').toUpperCase();
+          const jk = /^P|PEREMPUAN|WANITA/.test(rawJk) ? 'P' : 'L';
+          const rawSerdos = g('sertifikasi');
+          const sertifikasi = /sudah|ya|tersertifikasi|lulus/i.test(rawSerdos) ? 'Tersertifikasi' : 'Belum';
+          DOSEN_LIST.push({
+            id: nextId++,
+            kode: kode || '',
+            satdik: satdik || '-',
+            prodi: g('prodi') || '-',
+            nama,
+            nidn: g('nidn'),
+            nip: g('nip'),
+            jk,
+            pendidikan: g('pendidikan') || 'S2',
+            jafung: g('jafung') || 'Tenaga Pengajar',
+            sertifikasi,
+            status: g('status') || 'Aktif'
+          });
+          added++;
+        }
+        if (!added) {
+          if (msg) msg.innerHTML = '<span class="down">Tidak ada baris data dosen valid yang dapat diimpor.</span>';
+          return;
+        }
+        saveDosen();
+        tableState.dosen.page = 1;
+        RENDER['dapo-dosen']();
+        if (msg) msg.innerHTML = `<span class="up">✔ ${fmtNum(added)} data dosen berhasil diimpor</span> dari ${esc(file.name)}.` + (skipped ? ` (${skipped} baris kosong dilewati)` : '');
+        toast(`${fmtNum(added)} data dosen diimpor`);
+      } catch (err) {
+        if (msg) msg.innerHTML = '<span class="down">Gagal membaca file: ' + esc(err.message) + '</span>';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function downloadDosenTemplate() {
+    const wb = XLSX.utils.book_new();
+    // Sheet kosong (hanya header kolom, tanpa data dummy)
+    const ws = XLSX.utils.aoa_to_sheet([DOSEN_COLS]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Data Dosen');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ['Kolom', 'Wajib', 'Keterangan'],
+      ['kode', 'Disarankan', 'Kode satdik (mis. PAUP, PKPSDA, PKPBTG, AKKPWK)'],
+      ['satdik', 'Ya*', 'Nama satuan pendidikan (*isi salah satu: kode atau satdik)'],
+      ['prodi', 'Ya', 'Program studi / homebase dosen'],
+      ['nama', 'Ya', 'Nama lengkap dosen beserta gelar akademik'],
+      ['nidn', 'Tidak', 'Nomor Induk Dosen Nasional (NIDN) / NUPTK'],
+      ['nip', 'Tidak', 'Nomor Induk Pegawai (NIP)'],
+      ['jk', 'Tidak', 'L atau P'],
+      ['pendidikan', 'Tidak', 'S2 / S3 / Sp-1'],
+      ['jafung', 'Tidak', 'Tenaga Pengajar / Asisten Ahli / Lektor / Lektor Kepala / Guru Besar'],
+      ['sertifikasi', 'Tidak', 'Tersertifikasi / Belum'],
+      ['status', 'Tidak', 'Aktif / Tugas Belajar / Cuti']
+    ]), 'Petunjuk');
+    XLSX.writeFile(wb, 'template_data_dosen_kkp.xlsx');
+  }
+
+  function exportDosenData() {
+    const list = filteredDosen().map(d => Object.fromEntries(DOSEN_COLS.map(c => [c, d[c] ?? ''])));
+    const ws = list.length
+      ? XLSX.utils.json_to_sheet(list, { header: DOSEN_COLS })
+      : XLSX.utils.aoa_to_sheet([DOSEN_COLS]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data Dosen');
+    XLSX.writeFile(wb, `data_dosen_kkp_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
 
   RENDER['dapo-ptk'] = function () {
     const S = dapoMetas().map(dapoStats).sort((a, b) => b.ptk - a.ptk);
@@ -1362,7 +1717,7 @@
             view_campus: 'Akses Data Kampus Mandiri',
             edit_campus: 'Input/Update Sarpras Kampus',
             view_all: 'Lihat Semua Satdik Nasional',
-            executive_summary: 'Ringkasan Eksekutif & IKS',
+            executive_summary: 'Ringkasan Sarana & Prasarana & IKS',
             view_policy_reco: 'Rekomendasi Kebijakan Sarpras'
           };
           pContainer.innerHTML = (user.permissions || ['all']).map(p =>
@@ -1508,9 +1863,95 @@
         }
       });
     });
+    document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+      link.addEventListener('click', e => {
+        const targetPage = link.dataset.page;
+        if (targetPage && PAGES[targetPage]) {
+          e.preventDefault();
+          if (location.hash.slice(1) !== targetPage) {
+            location.hash = targetPage;
+          } else {
+            show(targetPage);
+          }
+        }
+      });
+    });
     window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 
     $('search').addEventListener('input', e => { tableState.data.q = e.target.value; tableState.data.page = 1; RENDER.data(); });
+    loadDosen();
+    ['fDosenSatdik', 'fDosenProdi', 'fDosenJafung'].forEach((id, i) => {
+      const key = ['satdik', 'prodi', 'jafung'][i];
+      if ($(id)) $(id).addEventListener('change', e => { F_DOSEN[key] = e.target.value; tableState.dosen.page = 1; RENDER['dapo-dosen'](); });
+    });
+    if ($('dosenSearch')) {
+      $('dosenSearch').addEventListener('input', e => { F_DOSEN.q = e.target.value; tableState.dosen.page = 1; RENDER['dapo-dosen'](); });
+    }
+    if ($('btnResetDosen')) {
+      $('btnResetDosen').onclick = () => {
+        const u = window.SARPRAS_AUTH ? window.SARPRAS_AUTH.getUser() : null;
+        F_DOSEN.satdik = (u && u.role === 'operator_satdik' && u.accessibleSatdik && u.accessibleSatdik !== 'ALL') ? u.accessibleSatdik : '';
+        F_DOSEN.prodi = '';
+        F_DOSEN.jafung = '';
+        F_DOSEN.q = '';
+        if ($('dosenSearch')) $('dosenSearch').value = '';
+        tableState.dosen.page = 1;
+        RENDER['dapo-dosen']();
+      };
+    }
+    if ($('btnAddDosen')) $('btnAddDosen').onclick = () => openDosenModal(null);
+    if ($('btnTemplateDosen')) $('btnTemplateDosen').onclick = downloadDosenTemplate;
+    if ($('btnExportDosen')) $('btnExportDosen').onclick = exportDosenData;
+    if ($('dosenFileInput')) {
+      $('dosenFileInput').onchange = e => { if (e.target.files[0]) handleDosenFile(e.target.files[0]); e.target.value = ''; };
+    }
+    if ($('btnClearDosen')) {
+      $('btnClearDosen').onclick = () => {
+        if (!DOSEN_LIST.length) return;
+        if (!window.confirm('Kosongkan seluruh data dosen yang tersimpan?')) return;
+        DOSEN_LIST = [];
+        try { localStorage.removeItem(LS.dosen); } catch (e) {}
+        if ($('dosenImportMsg')) { $('dosenImportMsg').style.display = 'none'; $('dosenImportMsg').innerHTML = ''; }
+        tableState.dosen.page = 1;
+        RENDER['dapo-dosen']();
+        toast('Data dosen dikosongkan.');
+      };
+    }
+    if ($('formDosen')) {
+      $('formDosen').onsubmit = e => {
+        e.preventDefault();
+        const nama = ($('inpDosenNama') && $('inpDosenNama').value || '').trim();
+        if (!nama) return;
+        const kode = $('inpDosenSatdik') ? $('inpDosenSatdik').value : '';
+        const satdik = nameOf(kode) || kode;
+        const editId = $('dosenId') ? $('dosenId').value : '';
+        const record = {
+          id: editId ? (+editId || editId) : (DOSEN_LIST.reduce((m, d) => Math.max(m, +d.id || 0), 0) + 1),
+          kode,
+          satdik,
+          prodi: $('inpDosenProdi') ? $('inpDosenProdi').value : '-',
+          nama,
+          nidn: ($('inpDosenNidn') && $('inpDosenNidn').value || '').trim(),
+          nip: ($('inpDosenNip') && $('inpDosenNip').value || '').trim(),
+          jk: $('inpDosenJk') ? $('inpDosenJk').value : 'L',
+          pendidikan: $('inpDosenPendidikan') ? $('inpDosenPendidikan').value : 'S2',
+          jafung: $('inpDosenJafung') ? $('inpDosenJafung').value : 'Tenaga Pengajar',
+          sertifikasi: $('inpDosenSerdos') ? $('inpDosenSerdos').value : 'Belum',
+          status: $('inpDosenStatus') ? $('inpDosenStatus').value : 'Aktif'
+        };
+        if (editId) {
+          const idx = DOSEN_LIST.findIndex(d => String(d.id) === String(editId));
+          if (idx >= 0) DOSEN_LIST[idx] = record;
+          else DOSEN_LIST.push(record);
+        } else {
+          DOSEN_LIST.push(record);
+        }
+        saveDosen();
+        closeModal('modalDosen');
+        RENDER['dapo-dosen']();
+        toast(editId ? 'Data dosen diperbarui.' : 'Data dosen ditambahkan.');
+      };
+    }
     if ($('mitraSearch')) {
       $('mitraSearch').addEventListener('input', () => RENDER['mitra-dir']());
     }

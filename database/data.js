@@ -95,6 +95,9 @@
     ['Utilitas', 'PLTS Atap', 'unit', 0, 2, 750]
   ];
 
+  // Data Dosen pada modul Dapodik (dikosongkan tanpa data dummy)
+  const DOSEN = [];
+
   /**
    * Mengembalikan data riil sarpras hasil pembacaan Data Contoh.xlsx.
    * Menggantikan generator simulasi acak sebelumnya.
@@ -111,5 +114,5 @@
     return getData();
   }
 
-  global.SARPRAS = { SATDIK, KATALOG, KONDISI, UMUR, generate, getData };
+  global.SARPRAS = { SATDIK, KATALOG, KONDISI, UMUR, DOSEN, generate, getData };
 })(window);

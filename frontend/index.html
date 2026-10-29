@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="icon" type="image/png" href="assets/logo-kkp.png">
-  <link rel="stylesheet" href="assets/css/style.css?v=7">
+  <link rel="stylesheet" href="assets/css/style.css?v=9">
 </head>
 <body>
   <!-- ========== SCREEN LOGIN (OTENTIKASI - DINONAKTIFKAN SEMENTARA) ========== -->
@@ -138,6 +138,9 @@
       <symbol id="i-trend" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
       <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
       <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+      <symbol id="i-user-check" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
     </defs>
   </svg>
 
@@ -296,7 +299,7 @@
             <nav class="sidenav-subnav" aria-label="Sub-menu Sarpras">
               <a href="#ringkasan" class="sidenav-subitem nav-link active" data-page="ringkasan">
                 <svg class="ico-svg"><use href="#i-bar"/></svg>
-                <span>Ringkasan Eksekutif</span>
+                <span>Ringkasan Sarana &amp; Prasarana</span>
               </a>
               <a href="#kondisi" class="sidenav-subitem nav-link" data-page="kondisi">
                 <svg class="ico-svg"><use href="#i-pie"/></svg>
@@ -333,6 +336,7 @@
             <nav class="sidenav-subnav" aria-label="Sub-menu Dapodik">
               <a href="#dapodik" class="sidenav-subitem nav-link" data-page="dapodik"><svg class="ico-svg"><use href="#i-bar"/></svg><span>Ringkasan Dapodik</span></a>
               <a href="#dapo-pd" class="sidenav-subitem nav-link" data-page="dapo-pd"><svg class="ico-svg"><use href="#i-grad"/></svg><span>Peserta Didik</span></a>
+              <a href="#dapo-dosen" class="sidenav-subitem nav-link" data-page="dapo-dosen"><svg class="ico-svg"><use href="#i-user-check"/></svg><span>Data Dosen</span></a>
               <a href="#dapo-ptk" class="sidenav-subitem nav-link" data-page="dapo-ptk"><svg class="ico-svg"><use href="#i-users"/></svg><span>Pendidik &amp; Tendik</span></a>
               <a href="#dapo-prodi" class="sidenav-subitem nav-link" data-page="dapo-prodi"><svg class="ico-svg"><use href="#i-layers"/></svg><span>Rombel &amp; Prodi</span></a>
               <a href="#dapo-satdik" class="sidenav-subitem nav-link" data-page="dapo-satdik"><svg class="ico-svg"><use href="#i-building"/></svg><span>Rekap Satuan Pendidikan</span></a>
@@ -389,7 +393,7 @@
         <div class="yt-chips-bar module-tabs" id="sarprasTabs" data-module="sarpras" style="display:none">
           <div class="container">
             <nav class="tabs nav" aria-label="Navigasi utama">
-              <a href="#ringkasan" class="nav-link active" data-page="ringkasan"><svg class="ico-svg"><use href="#i-bar"/></svg>Ringkasan Eksekutif</a>
+              <a href="#ringkasan" class="nav-link active" data-page="ringkasan"><svg class="ico-svg"><use href="#i-bar"/></svg>Ringkasan Sarana &amp; Prasarana</a>
               <a href="#kondisi" class="nav-link" data-page="kondisi"><svg class="ico-svg"><use href="#i-pie"/></svg>Analisis Kondisi</a>
               <a href="#satdik" class="nav-link" data-page="satdik"><svg class="ico-svg"><use href="#i-building"/></svg>Per Satuan Pendidikan</a>
               <a href="#kecukupan" class="nav-link" data-page="kecukupan"><svg class="ico-svg"><use href="#i-scale"/></svg>Rasio &amp; Kecukupan</a>
@@ -405,6 +409,7 @@
             <nav class="tabs nav" aria-label="Navigasi Dapodik">
               <a href="#dapodik" class="nav-link" data-page="dapodik"><svg class="ico-svg"><use href="#i-bar"/></svg>Ringkasan Dapodik</a>
               <a href="#dapo-pd" class="nav-link" data-page="dapo-pd"><svg class="ico-svg"><use href="#i-grad"/></svg>Peserta Didik</a>
+              <a href="#dapo-dosen" class="nav-link" data-page="dapo-dosen"><svg class="ico-svg"><use href="#i-user-check"/></svg>Data Dosen</a>
               <a href="#dapo-ptk" class="nav-link" data-page="dapo-ptk"><svg class="ico-svg"><use href="#i-users"/></svg>Pendidik &amp; Tendik</a>
               <a href="#dapo-prodi" class="nav-link" data-page="dapo-prodi"><svg class="ico-svg"><use href="#i-layers"/></svg>Rombel &amp; Prodi</a>
               <a href="#dapo-satdik" class="nav-link" data-page="dapo-satdik"><svg class="ico-svg"><use href="#i-building"/></svg>Rekap Satuan Pendidikan</a>
@@ -438,7 +443,7 @@
           <div class="hero-logo"><img src="assets/logo-kkp.png" alt="Logo KKP"></div>
           <div style="min-width:0">
             <span class="hero-chip" id="heroChip">National Sarpras Overview · BPPSDM KP</span>
-            <h2 id="pageTitle">Ringkasan Eksekutif</h2>
+            <h2 id="pageTitle">Ringkasan Sarana &amp; Prasarana</h2>
             <p id="pageSub">Gambaran umum kondisi sarana prasarana satuan pendidikan lingkup KKP</p>
           </div>
         </div>
@@ -811,6 +816,107 @@
       </div>
     </section>
 
+    <!-- DAPODIK: DATA DOSEN -->
+    <section class="page" id="page-dapo-dosen">
+      <div class="kpi-grid">
+        <div class="kpi kpi-cyan">
+          <div class="kpi-head"><span class="kpi-label">Total Dosen Terdata</span><div class="kpi-ico"><svg class="ico-svg"><use href="#i-user-check"/></svg></div></div>
+          <div class="kpi-val" id="dosenTotal">0</div><div class="kpi-foot" id="dosenTotalF">Belum ada data dosen</div>
+        </div>
+        <div class="kpi kpi-blue">
+          <div class="kpi-head"><span class="kpi-label">Kualifikasi S3 (Doktor)</span><div class="kpi-ico"><svg class="ico-svg"><use href="#i-grad"/></svg></div></div>
+          <div class="kpi-val" id="dosenS3">0</div><div class="kpi-foot" id="dosenS3F">S2: 0 · S3: 0</div>
+        </div>
+        <div class="kpi kpi-emerald">
+          <div class="kpi-head"><span class="kpi-label">Jabatan Akademik (Lektor+)</span><div class="kpi-ico"><svg class="ico-svg"><use href="#i-users"/></svg></div></div>
+          <div class="kpi-val" id="dosenJafung">0</div><div class="kpi-foot" id="dosenJafungF">Lektor, Lektor Kepala &amp; Guru Besar</div>
+        </div>
+        <div class="kpi kpi-amber">
+          <div class="kpi-head"><span class="kpi-label">Sertifikasi Pendidik (Serdos)</span><div class="kpi-ico"><svg class="ico-svg"><use href="#i-check"/></svg></div></div>
+          <div class="kpi-val" id="dosenSerdos">0</div><div class="kpi-foot" id="dosenSerdosF">Dosen Bersertifikat Pendidik</div>
+        </div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>Sebaran Dosen per Satuan Pendidikan</h3>
+              <p class="muted small" style="margin:4px 0 0">Jumlah dosen terdaftar pada masing-masing satuan pendidikan.</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="cDosenSatdik"></canvas>
+            <div class="chart-empty" id="emptyDosenSatdik">
+              <svg class="ico-svg"><use href="#i-user-check"/></svg>
+              <b>Belum Ada Data Dosen</b>
+              <span>Tambahkan atau impor data dosen untuk melihat grafik sebaran per satuan pendidikan.</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>Komposisi Jabatan Fungsional Dosen</h3>
+              <p class="muted small" style="margin:4px 0 0">Distribusi jenjang jabatan akademik dosen aktif.</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="cDosenJafung"></canvas>
+            <div class="chart-empty" id="emptyDosenJafung">
+              <svg class="ico-svg"><use href="#i-pie"/></svg>
+              <b>Belum Ada Data Jabatan Fungsional</b>
+              <span>Grafik komposisi jabatan akademik akan tampil setelah data dosen diisi.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>Daftar Data Dosen Satuan Pendidikan KKP <span class="muted small" id="dosenRowCount">(0 data)</span></h3>
+            <p class="muted small" style="margin:4px 0 0">Data pokok dosen tetap dan tidak tetap lingkup BPPSDM KP.</p>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn" id="btnAddDosen"><svg class="ico-svg"><use href="#i-plus"/></svg>Tambah Dosen</button>
+            <label class="btn btn-ghost" style="cursor:pointer;margin:0">
+              <input type="file" id="dosenFileInput" accept=".xlsx,.xls,.csv" hidden>
+              <svg class="ico-svg"><use href="#i-upload"/></svg>Impor Excel/CSV
+            </label>
+            <button type="button" class="btn btn-ghost" id="btnTemplateDosen">⤓ Template</button>
+            <button type="button" class="btn btn-ghost" id="btnExportDosen">⤓ Ekspor Excel</button>
+            <button type="button" class="btn btn-danger" id="btnClearDosen" style="display:none">Kosongkan Data</button>
+          </div>
+        </div>
+
+        <div id="dosenImportMsg" class="small" style="margin-bottom:10px;display:none"></div>
+
+        <div class="dosen-toolbar">
+          <div class="f-item">
+            <label for="fDosenSatdik">Satuan Pendidikan</label>
+            <select id="fDosenSatdik"></select>
+          </div>
+          <div class="f-item">
+            <label for="fDosenProdi">Program Studi</label>
+            <select id="fDosenProdi"></select>
+          </div>
+          <div class="f-item">
+            <label for="fDosenJafung">Jabatan Fungsional</label>
+            <select id="fDosenJafung"></select>
+          </div>
+          <div class="f-item">
+            <label for="dosenSearch">Pencarian</label>
+            <input type="search" id="dosenSearch" placeholder="Cari nama, NIDN, NIP, prodi…">
+          </div>
+          <button type="button" class="btn btn-ghost" id="btnResetDosen">↺ Reset</button>
+        </div>
+
+        <div class="table-wrap"><table class="tbl sortable" id="tDapoDosen"></table></div>
+        <div class="pager" id="dosenPager"></div>
+      </div>
+    </section>
+
     <!-- DAPODIK: PENDIDIK & TENDIK -->
     <section class="page" id="page-dapo-ptk">
       <div class="card">
@@ -933,7 +1039,7 @@
   <!-- Navigasi bawah khusus layar HP -->
   <nav class="mobile-nav" data-module="beranda" aria-label="Navigasi seluler Beranda"><div class="mobile-nav-inner"><a href="#beranda" class="nav-link active" data-page="beranda"><svg class="ico-svg"><use href="#i-home"/></svg><span>Beranda</span></a><a href="#ringkasan" class="nav-link" data-page="ringkasan"><svg class="ico-svg"><use href="#i-building"/></svg><span>Sarpras</span></a><a href="#dapodik" class="nav-link" data-page="dapodik"><svg class="ico-svg"><use href="#i-grad"/></svg><span>Dapodik</span></a><a href="#mitra" class="nav-link" data-page="mitra"><svg class="ico-svg"><use href="#i-handshake"/></svg><span>Mitra</span></a></div></nav>
   <nav class="mobile-nav hidden-mod" id="sarprasMobileNav" data-module="sarpras" aria-label="Navigasi seluler"><div class="mobile-nav-inner"><a href="#ringkasan" class="nav-link active" data-page="ringkasan"><svg class="ico-svg"><use href="#i-bar"/></svg><span>Ringkasan</span></a><a href="#kondisi" class="nav-link" data-page="kondisi"><svg class="ico-svg"><use href="#i-pie"/></svg><span>Kondisi</span></a><a href="#satdik" class="nav-link" data-page="satdik"><svg class="ico-svg"><use href="#i-building"/></svg><span>Satdik</span></a><a href="#kecukupan" class="nav-link" data-page="kecukupan"><svg class="ico-svg"><use href="#i-scale"/></svg><span>Rasio</span></a><a href="#prioritas" class="nav-link" data-page="prioritas"><svg class="ico-svg"><use href="#i-alert"/></svg><span>Prioritas</span></a><a href="#peta" class="nav-link" data-page="peta"><svg class="ico-svg"><use href="#i-pin"/></svg><span>Peta</span></a><a href="#data" class="nav-link" data-page="data"><svg class="ico-svg"><use href="#i-db"/></svg><span>Data</span></a></div></nav>
-  <nav class="mobile-nav hidden-mod" data-module="dapodik" aria-label="Navigasi seluler Dapodik"><div class="mobile-nav-inner"><a href="#dapodik" class="nav-link" data-page="dapodik"><svg class="ico-svg"><use href="#i-bar"/></svg><span>Ringkasan</span></a><a href="#dapo-pd" class="nav-link" data-page="dapo-pd"><svg class="ico-svg"><use href="#i-grad"/></svg><span>Peserta</span></a><a href="#dapo-ptk" class="nav-link" data-page="dapo-ptk"><svg class="ico-svg"><use href="#i-users"/></svg><span>PTK</span></a><a href="#dapo-prodi" class="nav-link" data-page="dapo-prodi"><svg class="ico-svg"><use href="#i-layers"/></svg><span>Prodi</span></a><a href="#dapo-satdik" class="nav-link" data-page="dapo-satdik"><svg class="ico-svg"><use href="#i-building"/></svg><span>Rekap</span></a></div></nav>
+  <nav class="mobile-nav hidden-mod" data-module="dapodik" aria-label="Navigasi seluler Dapodik"><div class="mobile-nav-inner"><a href="#dapodik" class="nav-link" data-page="dapodik"><svg class="ico-svg"><use href="#i-bar"/></svg><span>Ringkasan</span></a><a href="#dapo-pd" class="nav-link" data-page="dapo-pd"><svg class="ico-svg"><use href="#i-grad"/></svg><span>Peserta</span></a><a href="#dapo-dosen" class="nav-link" data-page="dapo-dosen"><svg class="ico-svg"><use href="#i-user-check"/></svg><span>Dosen</span></a><a href="#dapo-ptk" class="nav-link" data-page="dapo-ptk"><svg class="ico-svg"><use href="#i-users"/></svg><span>PTK</span></a><a href="#dapo-prodi" class="nav-link" data-page="dapo-prodi"><svg class="ico-svg"><use href="#i-layers"/></svg><span>Prodi</span></a><a href="#dapo-satdik" class="nav-link" data-page="dapo-satdik"><svg class="ico-svg"><use href="#i-building"/></svg><span>Rekap</span></a></div></nav>
   <nav class="mobile-nav hidden-mod" data-module="mitra" aria-label="Navigasi seluler Mitra"><div class="mobile-nav-inner"><a href="#mitra" class="nav-link" data-page="mitra"><svg class="ico-svg"><use href="#i-bar"/></svg><span>Ringkasan</span></a><a href="#mitra-dir" class="nav-link" data-page="mitra-dir"><svg class="ico-svg"><use href="#i-briefcase"/></svg><span>Direktori</span></a><a href="#mitra-mou" class="nav-link" data-page="mitra-mou"><svg class="ico-svg"><use href="#i-file"/></svg><span>MoU</span></a><a href="#mitra-magang" class="nav-link" data-page="mitra-magang"><svg class="ico-svg"><use href="#i-calendar"/></svg><span>Magang</span></a><a href="#mitra-serapan" class="nav-link" data-page="mitra-serapan"><svg class="ico-svg"><use href="#i-trend"/></svg><span>Serapan</span></a></div></nav>
       </div><!-- /app-main-wrap -->
     </div><!-- /yt-body -->
@@ -1047,14 +1153,103 @@
     </div>
   </div>
 
+  <!-- MODAL: Tambah / Edit Data Dosen -->
+  <div class="modal-backdrop" id="modalDosen">
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h3 id="modalDosenTitle">Tambah Data Dosen</h3>
+        <button type="button" class="modal-close" data-close="modalDosen">&times;</button>
+      </div>
+      <form id="formDosen">
+        <div class="modal-body">
+          <input type="hidden" id="dosenId">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="form-group">
+              <label for="inpDosenNama">Nama Lengkap &amp; Gelar *</label>
+              <input type="text" id="inpDosenNama" placeholder="Masukkan nama lengkap beserta gelar akademik" required>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="inpDosenNidn">NIDN / NUPTK</label>
+                <input type="text" id="inpDosenNidn" placeholder="Nomor Induk Dosen Nasional">
+              </div>
+              <div class="form-group">
+                <label for="inpDosenNip">NIP</label>
+                <input type="text" id="inpDosenNip" placeholder="Nomor Induk Pegawai (18 digit)">
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="inpDosenSatdik">Satuan Pendidikan *</label>
+                <select id="inpDosenSatdik" required></select>
+              </div>
+              <div class="form-group">
+                <label for="inpDosenProdi">Program Studi / Homebase *</label>
+                <select id="inpDosenProdi" required></select>
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="inpDosenJk">Jenis Kelamin</label>
+                <select id="inpDosenJk">
+                  <option value="L">Laki-laki (L)</option>
+                  <option value="P">Perempuan (P)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="inpDosenPendidikan">Pendidikan Terakhir</label>
+                <select id="inpDosenPendidikan">
+                  <option value="S2">S2 / Magister</option>
+                  <option value="S3">S3 / Doktor</option>
+                  <option value="Sp-1">Spesialis / Terapan</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="inpDosenJafung">Jabatan Fungsional</label>
+                <select id="inpDosenJafung">
+                  <option value="Tenaga Pengajar">Tenaga Pengajar</option>
+                  <option value="Asisten Ahli">Asisten Ahli</option>
+                  <option value="Lektor">Lektor</option>
+                  <option value="Lektor Kepala">Lektor Kepala</option>
+                  <option value="Guru Besar">Guru Besar</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="inpDosenSerdos">Sertifikasi Pendidik</label>
+                <select id="inpDosenSerdos">
+                  <option value="Belum">Belum Tersertifikasi</option>
+                  <option value="Tersertifikasi">Tersertifikasi</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="inpDosenStatus">Status Keaktifan</label>
+              <select id="inpDosenStatus">
+                <option value="Aktif">Aktif</option>
+                <option value="Tugas Belajar">Tugas Belajar</option>
+                <option value="Cuti">Cuti / Penugasan Luar</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close="modalDosen">Batal</button>
+          <button type="submit" class="btn">Simpan Data Dosen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="../database/data-excel.js?v=2"></script>
-  <script src="../database/data.js?v=8"></script>
+  <script src="../database/data.js?v=10"></script>
   <script src="../Services/auth.js?v=2"></script>
-  <script src="assets/js/app.js?v=14"></script>
+  <script src="assets/js/app.js?v=17"></script>
 </body>
 </html>
