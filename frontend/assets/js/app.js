@@ -36,7 +36,7 @@
   const charts = {};
   let map = null, mapLayer = null;
   let DOSEN_LIST = [];
-  const F_DOSEN = { satdik: '', prodi: '', jafung: '', q: '' };
+  const F_DOSEN = { jenis: '', satdik: '', prodi: '', jafung: '', q: '' };
   const JAFUNG_LIST = ['Tenaga Pengajar', 'Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'];
   const tableState = { profil: { key: 'iks', dir: 1 }, data: { key: null, dir: 1, page: 1, q: '' }, dosen: { key: null, dir: 1, page: 1 } };
 
@@ -58,6 +58,12 @@
     for (const x of arr) { const k = fn(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }
     return m;
   }
+  const JENIS_ORDER = ['Politeknik', 'Akademi Komunitas', 'SUPM'];
+  const formatSatdikSummary = list => {
+    const g = groupBy(list, x => (x && x.m ? x.m.jenis : (x && x.jenis) ? x.jenis : (META[x] ? META[x].jenis : '')));
+    const orderedKeys = [...JENIS_ORDER.filter(j => g.has(j)), ...[...g.keys()].filter(j => j && !JENIS_ORDER.includes(j))];
+    return orderedKeys.map(j => `${g.get(j).length} ${j}`).join(' · ');
+  };
   function iksLevel(v) { return v >= 80 ? 'Baik' : v >= 65 ? 'Cukup' : v >= 50 ? 'Kurang' : 'Kritis'; }
   function isDark() { return !document.documentElement.classList.contains('light'); }
   function iksColor(v) { return v >= 80 ? '#10b981' : v >= 65 ? '#0ea5e9' : v >= 50 ? '#f59e0b' : '#f43f5e'; }
@@ -116,10 +122,20 @@
     el.value = items.some(i => i[0] === val) ? val : '';
   }
   function fillFilters() {
+    const metas = Object.values(META);
+    const uniqArr = arr => [...new Set(arr)].filter(Boolean).sort((a, b) => String(a).localeCompare(b)).map(v => [v, v]);
     const uniq = f => [...new Set(ALL.map(f))].filter(Boolean).sort((a, b) => String(a).localeCompare(b)).map(v => [v, v]);
-    fillSelect($('fJenis'), uniq(r => r.jenis), 'Semua jenis', F.jenis);
-    fillSelect($('fProv'), uniq(r => r.provinsi), 'Semua provinsi', F.prov);
-    const sat = [...new Map(ALL.filter(r => (!F.jenis || r.jenis === F.jenis) && (!F.prov || r.provinsi === F.prov)).map(r => [r.kode, r.satdik]))]
+    fillSelect($('fJenis'), uniqArr([...metas.map(m => m.jenis), ...ALL.map(r => r.jenis)]), 'Semua jenis', F.jenis);
+    F.jenis = $('fJenis').value;
+    fillSelect($('fProv'), uniqArr([
+      ...metas.filter(m => !F.jenis || m.jenis === F.jenis).map(m => m.provinsi),
+      ...ALL.filter(r => !F.jenis || r.jenis === F.jenis).map(r => r.provinsi)
+    ]), 'Semua provinsi', F.prov);
+    F.prov = $('fProv').value;
+    const satMap = new Map();
+    metas.filter(m => (!F.jenis || m.jenis === F.jenis) && (!F.prov || m.provinsi === F.prov)).forEach(m => satMap.set(m.kode, m.nama));
+    ALL.filter(r => (!F.jenis || r.jenis === F.jenis) && (!F.prov || r.provinsi === F.prov)).forEach(r => { if (!satMap.has(r.kode)) satMap.set(r.kode, r.satdik); });
+    const sat = [...satMap]
       .sort((a, b) => a[1].localeCompare(b[1]));
     fillSelect($('fSatdik'), sat, 'Semua satuan pendidikan', F.satdik);
     fillSelect($('fKat'), uniq(r => r.kategori).sort((a, b) => katIdx(a[0]) - katIdx(b[0])), 'Semua Program Studi', F.kat);
@@ -273,7 +289,7 @@
     beranda: ['Beranda — Ringkasan 3 Modul', 'Sintesis terpadu kondisi Sarana Prasarana (Sarpras), Data Pokok Pendidikan (Dapodik), dan Kemitraan Industri (Mitra) BPPSDM KP'],
     ringkasan: ['Ringkasan Sarana & Prasarana', 'Gambaran umum kondisi sarana prasarana satuan pendidikan lingkup KKP'],
     kondisi: ['Analisis Program Studi', 'Distribusi kondisi, usia aset sarpras per program studi, dan tren perolehan aset'],
-    satdik: ['Per Satuan Pendidikan', 'Perbandingan kondisi sarpras antar Politeknik dan Akademi Komunitas'],
+    satdik: ['Per Satuan Pendidikan', 'Perbandingan kondisi sarpras antar satuan pendidikan KKP (Politeknik, Akademi Komunitas, dan SUPM)'],
     kecukupan: ['Rasio & Kecukupan', 'Ketersediaan sarpras layak pakai terhadap jumlah peserta didik'],
     prioritas: ['Prioritas & Rekomendasi', 'Pemeringkatan kebutuhan intervensi dan rekomendasi kebijakan'],
     peta: ['Peta Sebaran', 'Sebaran geografis satuan pendidikan dan indeks kondisi sarpras'],
@@ -304,9 +320,9 @@
 
   RENDER.ringkasan = function () {
     const rows = filtered(), A = agg(rows);
-    const kodes = [...new Set(rows.map(r => r.kode))];
-    $('kSatdik').textContent = fmtNum(kodes.length);
-    $('kSatdikF').textContent = [...groupBy(kodes, k => META[k].jenis)].map(([j, l]) => `${l.length} ${j}`).join(' · ');
+    const activeMetas = Object.values(META).filter(m => (!F.jenis || m.jenis === F.jenis) && (!F.prov || m.provinsi === F.prov) && (!F.satdik || m.kode === F.satdik));
+    $('kSatdik').textContent = fmtNum(activeMetas.length);
+    $('kSatdikF').textContent = formatSatdikSummary(activeMetas);
     $('kUnit').textContent = fmtNum(A.unit);
     $('kUnitF').textContent = `${fmtNum(new Set(rows.map(r => r.nama)).size)} jenis item · ${fmtNum(rows.length)} baris`;
     $('kBaik').textContent = pct(A.k['Baik'] / A.unit);
@@ -407,6 +423,7 @@
       });
     }
 
+    if (!rows.length) chart('cTren', { type: 'bar', data: { labels: [], datasets: [] } });
     const items = [...groupBy(rows, r => r.nama)].map(([n, rs]) => {
       const a = agg(rs), rbRows = rs.filter(r => r.kondisi === 'Rusak Berat');
       return { n, kat: rs[0].kategori, sat: rs[0].satuan, unit: a.unit, rb: a.k['Rusak Berat'], rbp: a.k['Rusak Berat'] / a.unit, nSat: new Set(rbRows.map(r => r.kode)).size };
@@ -430,6 +447,7 @@
         }).join('') + `<td style="${heat(s.a.iks)}">${f1(s.a.iks)}</td></tr>`;
       }).join('') + '</tbody>';
 
+    if (!sats.length) $('tHeat').innerHTML = '<thead><tr><th>Satuan Pendidikan</th><th>Total</th></tr></thead><tbody><tr><td colspan="2" class="muted">Tidak ada data sarpras pada kombinasi filter ini.</td></tr></tbody>';
     const data = sats.map(s => ({
       kode: s.k, nama: nameOf(s.k), jenis: META[s.k].jenis, prov: META[s.k].provinsi, taruna: +TARUNA[s.k] || 0,
       unit: s.a.unit, baik: s.a.k['Baik'] / s.a.unit * 100, rb: s.a.k['Rusak Berat'] / s.a.unit * 100,
@@ -491,6 +509,7 @@
           `<td><div style="display:flex;gap:8px;align-items:center">${bar(p.score / 60 * 100, ['', '#f43f5e', '#f59e0b', '#0ea5e9', '#10b981'][l])}<b>${f1(p.score)}</b></div></td><td><span class="lvl lvl-${l}">${t}</span></td></tr>`;
       }).join('') + '</tbody>';
 
+    if (!P.length) $('tPrioritas').innerHTML = '<thead><tr><th>#</th><th>Satuan Pendidikan</th><th class="num">IKS</th><th class="num">Defisit Kritis</th><th class="num">Gap Rasio</th><th>Skor Prioritas</th><th>Level</th></tr></thead><tbody><tr><td colspan="7" class="muted">Tidak ada data sarpras pada kombinasi filter ini.</td></tr></tbody>';
     $('recoGrid').innerHTML = P.map(p => {
       const [l, t] = prioLevel(p.score);
       return `<div class="reco"><div class="reco-h"><div><b>${esc(nameOf(p.k))}</b><div class="small muted">${esc(META[p.k].jenis)} · ${esc(META[p.k].provinsi)} · IKS ${f1(p.a.iks)}</div></div><span class="lvl lvl-${l}">${t}</span></div><ul>${recommendations(p).map(x => `<li>${x}</li>`).join('')}</ul></div>`;
@@ -550,7 +569,7 @@
     pg.innerHTML = h + btn(st.page + 1, '›', st.page === pages) + `<span class="muted small">hal. ${st.page}/${pages}</span>`;
     pg.querySelectorAll('button').forEach(b => b.onclick = () => { st.page = +b.dataset.p; RENDER.data(); });
 
-    const metas = Object.values(META).filter(m => ALL.some(r => r.kode === m.kode) && (!F.jenis || m.jenis === F.jenis) && (!F.prov || m.provinsi === F.prov));
+    const metas = Object.values(META).filter(m => (!F.jenis || m.jenis === F.jenis) && (!F.prov || m.provinsi === F.prov)).sort((a, b) => a.nama.localeCompare(b.nama));
     $('tTaruna').innerHTML = '<thead><tr><th>Satuan Pendidikan</th><th>Jenis</th><th class="num">Jumlah Taruna</th></tr></thead><tbody>' +
       metas.map(m => `<tr><td>${esc(m.nama)}</td><td>${esc(m.jenis)}</td><td class="num"><input type="number" min="0" step="10" data-k="${esc(m.kode)}" value="${+TARUNA[m.kode] || 0}"></td></tr>`).join('') + '</tbody>';
     $('tTaruna').querySelectorAll('input').forEach(inp => inp.onchange = () => {
@@ -570,7 +589,7 @@
   };
   const dapoLevels = j => /politeknik/i.test(j) ? 4 : /akademi/i.test(j) ? 2 : 3;
   const ROMAN = ['I', 'II', 'III', 'IV'];
-  const dapoMetas = () => Object.values(META).filter(m => ALL.some(r => r.kode === m.kode)).sort((a, b) => a.nama.localeCompare(b.nama));
+  const dapoMetas = () => Object.values(META).sort((a, b) => a.nama.localeCompare(b.nama));
   function dapoStats(m) {
     const taruna = +TARUNA[m.kode] || 0;
     const laki = Math.round(taruna * (0.7 + seed(m.kode, 'lp') * 0.15));
@@ -582,7 +601,8 @@
     const instruktur = Math.round(dosen * (0.25 + seed(m.kode, 'in') * 0.2));
     const tendik = Math.round(dosen * (0.6 + seed(m.kode, 'tdk') * 0.3));
     const pendidik = dosen + instruktur;
-    const prodis = [...new Set(ALL.filter(r => r.kode === m.kode).map(r => r.kategori).filter(Boolean))];
+    let prodis = [...new Set(ALL.filter(r => r.kode === m.kode).map(r => r.kategori).filter(Boolean))];
+    if (!prodis.length) prodis = ['Penangkapan Ikan', 'Permesinan Kapal', 'Budidaya', 'Pengolahan'];
     return {
       m, taruna, laki, perempuan: taruna - laki, lv, tingkat, dosen, instruktur, tendik, pendidik,
       ptk: pendidik + tendik, rasio: pendidik ? taruna / pendidik : 0,
@@ -594,12 +614,12 @@
     const S = dapoMetas().map(dapoStats);
     const totalTaruna = sum(S, 'taruna');
     $('dapoSatdik').textContent = fmtNum(S.length);
-    $('dapoSatdikF').textContent = [...groupBy(S, s => s.m.jenis)].map(([j, l]) => `${l.length} ${j}`).join(' · ');
+    $('dapoSatdikF').textContent = formatSatdikSummary(S);
     $('dapoTaruna').textContent = fmtNum(totalTaruna);
     $('dapoPendidik').textContent = fmtNum(sum(S, 'ptk'));
     $('dapoProdi').textContent = fmtNum(new Set(ALL.map(r => r.kategori).filter(Boolean)).size);
 
-    const byJenis = [...groupBy(S, s => s.m.jenis)].map(([j, l]) => [j, sum(l, 'taruna')]);
+    const byJenis = JENIS_ORDER.filter(j => S.some(s => s.m.jenis === j)).map(j => [j, sum(S.filter(s => s.m.jenis === j), 'taruna')]);
     chart('cDapoJenis', {
       type: 'doughnut',
       data: { labels: byJenis.map(x => x[0]), datasets: [{ data: byJenis.map(x => x[1]), backgroundColor: PALETTE, borderWidth: 2, borderColor: isDark() ? '#1e293b' : '#fff' }] },
@@ -649,9 +669,9 @@
     catch (e) { toast('Gagal menyimpan data dosen ke penyimpanan lokal.'); }
   }
 
-  function dosenSatdikOptions() {
-    const base = Object.values(META).filter(m => /politeknik|akademi/i.test(m.jenis) || ALL.some(r => r.kode === m.kode));
-    const list = base.length ? base : SATDIK;
+  function dosenSatdikOptions(jenisFilter) {
+    const base = Object.values(META);
+    const list = (base.length ? base : SATDIK).filter(m => !jenisFilter || m.jenis === jenisFilter);
     return [...list].sort((a, b) => a.nama.localeCompare(b.nama));
   }
 
@@ -661,10 +681,20 @@
   }
 
   function fillDosenFilters() {
-    const sats = dosenSatdikOptions().map(m => [m.kode, m.nama]);
+    const baseMetas = Object.values(META);
+    const jenisSource = baseMetas.length ? baseMetas : SATDIK;
+    const jenisOpts = [...new Set(jenisSource.map(m => m.jenis))].filter(Boolean).sort((a, b) => String(a).localeCompare(b)).map(j => [j, j]);
+    if ($('fDosenJenis')) {
+      fillSelect($('fDosenJenis'), jenisOpts, 'Semua jenis', F_DOSEN.jenis);
+      F_DOSEN.jenis = $('fDosenJenis').value;
+    }
+    const sats = dosenSatdikOptions(F_DOSEN.jenis).map(m => [m.kode, m.nama]);
     const prodis = dosenProdiOptions().map(p => [p, p]);
     const jafungs = JAFUNG_LIST.map(j => [j, j]);
-    if ($('fDosenSatdik')) fillSelect($('fDosenSatdik'), sats, 'Semua satuan pendidikan', F_DOSEN.satdik);
+    if ($('fDosenSatdik')) {
+      fillSelect($('fDosenSatdik'), sats, 'Semua satuan pendidikan', F_DOSEN.satdik);
+      F_DOSEN.satdik = $('fDosenSatdik').value;
+    }
     if ($('fDosenProdi')) fillSelect($('fDosenProdi'), prodis, 'Semua program studi', F_DOSEN.prodi);
     if ($('fDosenJafung')) fillSelect($('fDosenJafung'), jafungs, 'Semua jabatan fungsional', F_DOSEN.jafung);
 
@@ -675,19 +705,23 @@
         $('fDosenSatdik').value = user.accessibleSatdik;
         $('fDosenSatdik').disabled = true;
       }
-    } else if ($('fDosenSatdik')) {
-      $('fDosenSatdik').disabled = false;
+      if ($('fDosenJenis')) $('fDosenJenis').disabled = true;
+    } else {
+      if ($('fDosenSatdik')) $('fDosenSatdik').disabled = false;
+      if ($('fDosenJenis')) $('fDosenJenis').disabled = false;
     }
   }
 
   function filteredDosen() {
     const q = (F_DOSEN.q || '').toLowerCase().trim();
-    return DOSEN_LIST.filter(d =>
-      (!F_DOSEN.satdik || d.kode === F_DOSEN.satdik) &&
-      (!F_DOSEN.prodi || d.prodi === F_DOSEN.prodi) &&
-      (!F_DOSEN.jafung || d.jafung === F_DOSEN.jafung) &&
-      (!q || `${d.nama} ${d.nidn} ${d.nip} ${d.prodi} ${d.satdik} ${d.jafung} ${d.pendidikan}`.toLowerCase().includes(q))
-    );
+    return DOSEN_LIST.filter(d => {
+      const dJenis = (META[d.kode] && META[d.kode].jenis) || inferJenis(d.satdik);
+      return (!F_DOSEN.jenis || dJenis === F_DOSEN.jenis) &&
+        (!F_DOSEN.satdik || d.kode === F_DOSEN.satdik) &&
+        (!F_DOSEN.prodi || d.prodi === F_DOSEN.prodi) &&
+        (!F_DOSEN.jafung || d.jafung === F_DOSEN.jafung) &&
+        (!q || `${d.nama} ${d.nidn} ${d.nip} ${d.prodi} ${d.satdik} ${d.jafung} ${d.pendidikan}`.toLowerCase().includes(q));
+    });
   }
 
   RENDER['dapo-dosen'] = function () {
@@ -1002,8 +1036,22 @@
 
   RENDER['dapo-prodi'] = function () {
     const S = Object.fromEntries(dapoMetas().map(m => [m.kode, dapoStats(m)]));
-    const rows = [...groupBy(ALL.filter(r => S[r.kode] && r.kategori), r => r.kategori)].map(([k, rs]) => {
-      const kodes = [...new Set(rs.map(r => r.kode))];
+    const prodiMap = new Map();
+    Object.values(S).forEach(s => {
+      s.prodis.forEach(k => {
+        if (!k) return;
+        if (!prodiMap.has(k)) prodiMap.set(k, new Set());
+        prodiMap.get(k).add(s.m.kode);
+      });
+    });
+    ALL.forEach(r => {
+      if (r.kategori && S[r.kode]) {
+        if (!prodiMap.has(r.kategori)) prodiMap.set(r.kategori, new Set());
+        prodiMap.get(r.kategori).add(r.kode);
+      }
+    });
+    const rows = [...prodiMap.entries()].map(([k, kodeSet]) => {
+      const kodes = [...kodeSet];
       const peserta = kodes.reduce((a, c) => a + S[c].taruna / Math.max(1, S[c].prodis.length), 0);
       return { k, kodes, peserta, rombel: Math.ceil(peserta / 30) };
     }).sort((a, b) => katIdx(a.k) - katIdx(b.k));
@@ -1174,7 +1222,7 @@
 
     // 1. 4 KPI Utama Lintas Modul
     if ($('allSatdik')) $('allSatdik').textContent = fmtNum(metas.length);
-    if ($('allSatdikF')) $('allSatdikF').textContent = [...groupBy(metas, m => m.jenis)].map(([j, l]) => `${l.length} ${j}`).join(' · ');
+    if ($('allSatdikF')) $('allSatdikF').textContent = formatSatdikSummary(metas);
     if ($('allIks')) $('allIks').textContent = f1(A.iks);
     if ($('allIksF')) $('allIksF').innerHTML = `${iksBadge(A.iks)} · ${fmtNum(A.unit)} unit (${pct(A.k['Baik'] / A.unit)} baik)`;
     if ($('allTaruna')) $('allTaruna').textContent = fmtNum(totalTaruna);
@@ -1225,14 +1273,14 @@
       const mg = magangByKode[m.kode];
       const sr = serapByKode[m.kode];
       return { m, sa, dp, mg, sr };
-    }).sort((a, b) => b.sa.iks - a.sa.iks);
+    }).sort((a, b) => ((isFinite(b.sa.iks) ? b.sa.iks : -1) - (isFinite(a.sa.iks) ? a.sa.iks : -1)));
 
     chart('cAllKomparasi', {
       type: 'bar',
       data: {
         labels: combined.map(x => short(x.m.nama)),
         datasets: [
-          { label: 'IKS Sarpras (0–100)', data: combined.map(x => +x.sa.iks.toFixed(1)), backgroundColor: '#06b6d4', borderRadius: 3 },
+          { label: 'IKS Sarpras (0–100)', data: combined.map(x => isFinite(x.sa.iks) ? +x.sa.iks.toFixed(1) : null), backgroundColor: '#06b6d4', borderRadius: 3 },
           { label: '% Keterserapan Lulusan (Mitra)', data: combined.map(x => +(x.sr.serap * 100).toFixed(1)), backgroundColor: '#10b981', borderRadius: 3 }
         ]
       },
@@ -1277,8 +1325,8 @@
           <td>${i + 1}</td>
           <td><b>${esc(short(x.m.nama))}</b><div class="small muted">${esc(x.m.provinsi)}</div></td>
           <td><span class="badge b-rr">${esc(x.m.jenis)}</span></td>
-          <td class="num">${fmtNum(x.sa.unit)}</td>
-          <td><div style="display:flex;gap:8px;align-items:center">${bar(x.sa.iks, iksColor(x.sa.iks))}<b>${f1(x.sa.iks)}</b></div></td>
+          <td class="num">${x.sa.unit ? fmtNum(x.sa.unit) : '<span class="muted">–</span>'}</td>
+          <td>${x.sa.unit ? `<div style="display:flex;gap:8px;align-items:center">${bar(x.sa.iks, iksColor(x.sa.iks))}<b>${f1(x.sa.iks)}</b></div>` : '<span class="muted small">Belum terdata</span>'}</td>
           <td class="num"><b>${fmtNum(x.dp.taruna)}</b></td>
           <td class="num">${fmtNum(x.dp.ptk)}</td>
           <td class="num">${fmtNum(x.dp.rombel)}</td>
@@ -1880,8 +1928,8 @@
 
     $('search').addEventListener('input', e => { tableState.data.q = e.target.value; tableState.data.page = 1; RENDER.data(); });
     loadDosen();
-    ['fDosenSatdik', 'fDosenProdi', 'fDosenJafung'].forEach((id, i) => {
-      const key = ['satdik', 'prodi', 'jafung'][i];
+    ['fDosenJenis', 'fDosenSatdik', 'fDosenProdi', 'fDosenJafung'].forEach((id, i) => {
+      const key = ['jenis', 'satdik', 'prodi', 'jafung'][i];
       if ($(id)) $(id).addEventListener('change', e => { F_DOSEN[key] = e.target.value; tableState.dosen.page = 1; RENDER['dapo-dosen'](); });
     });
     if ($('dosenSearch')) {
@@ -1890,6 +1938,7 @@
     if ($('btnResetDosen')) {
       $('btnResetDosen').onclick = () => {
         const u = window.SARPRAS_AUTH ? window.SARPRAS_AUTH.getUser() : null;
+        F_DOSEN.jenis = '';
         F_DOSEN.satdik = (u && u.role === 'operator_satdik' && u.accessibleSatdik && u.accessibleSatdik !== 'ALL') ? u.accessibleSatdik : '';
         F_DOSEN.prodi = '';
         F_DOSEN.jafung = '';
